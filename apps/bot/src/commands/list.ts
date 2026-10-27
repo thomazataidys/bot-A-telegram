@@ -1,10 +1,15 @@
-import { displayTitle, escapeHtml, getUserList } from '@animebot/core';
+import {
+  UserNotFoundError,
+  displayTitle,
+  escapeHtml,
+  getUserList,
+  getUserListByUsername,
+} from '@animebot/core';
 import type { ListEntryWithAnime } from '@animebot/core';
-import { InlineKeyboard } from 'grammy';
 import type { Bot } from 'grammy';
 import type { BotContext } from '../context.js';
-import { STATUS_LABELS, formatProgress } from '../keyboards/entry.js';
-import { HTML_OPTIONS, truncate } from '../messages.js';
+import { STATUS_LABELS, formatProgress, openEntryKeyboard } from '../keyboards/entry.js';
+import { HTML_OPTIONS, chunkLines } from '../messages.js';
 
 /** Entradas por mensagem: limita o tamanho do texto e o número de botões. */
 const PAGE_SIZE = 10;
@@ -16,11 +21,36 @@ function entryLine(entry: ListEntryWithAnime, number: number): string {
   return `${number}. ${title} — ${formatProgress(entry)}`;
 }
 
+async function replyWithOtherUserList(ctx: BotContext, handle: string): Promise<void> {
+  const list = await getUserListByUsername(handle).catch((error: unknown) => {
+    if (error instanceof UserNotFoundError) return null;
+    throw error;
+  });
+  if (!list?.user.active) {
+    await ctx.reply(`Não encontrei o usuário "${handle}".`);
+    return;
+  }
+
+  const name = escapeHtml(list.user.name);
+  if (list.totalCount === 0) {
+    await ctx.reply(`A lista de <b>${name}</b> está vazia.`, HTML_OPTIONS);
+    return;
+  }
+  const lines = [`<b>Lista de ${name}</b>`];
+  for (const status of STATUS_ORDER) {
+    const entries = list[status];
+    if (entries.length === 0) continue;
+    lines.push('', `<b>${STATUS_LABELS[status]}</b> (${entries.length})`);
+    entries.forEach((entry, i) => lines.push(entryLine(entry, i + 1)));
+  }
+  for (const chunk of chunkLines(lines)) await ctx.reply(chunk, HTML_OPTIONS);
+}
+
 export function registerList(bot: Bot<BotContext>): void {
   bot.command('lista', async (ctx) => {
-    // /lista @usuario entra na Fase 5.
-    if (ctx.match.trim() !== '') {
-      await ctx.reply('Por enquanto só consigo mostrar a sua própria lista: use /lista.');
+    const handle = ctx.match.trim();
+    if (handle !== '') {
+      await replyWithOtherUserList(ctx, handle);
       return;
     }
 
@@ -38,18 +68,9 @@ export function registerList(bot: Bot<BotContext>): void {
         const page = entries.slice(start, start + PAGE_SIZE);
         const header = `<b>${STATUS_LABELS[status]}</b> (${entries.length})${start > 0 ? ' — continuação' : ''}`;
         const lines = page.map((entry, i) => entryLine(entry, start + i + 1));
-        const keyboard = new InlineKeyboard();
-        page.forEach((entry, i) => {
-          keyboard
-            .text(
-              `🗑 ${start + i + 1}. ${truncate(displayTitle(entry.anime), 35)}`,
-              `rm:${entry.id}`,
-            )
-            .row();
-        });
         await ctx.reply([header, '', ...lines].join('\n'), {
           ...HTML_OPTIONS,
-          reply_markup: keyboard,
+          reply_markup: openEntryKeyboard(page, start + 1),
         });
       }
     }

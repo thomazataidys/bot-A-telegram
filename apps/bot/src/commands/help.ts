@@ -7,7 +7,10 @@ export const HELP_TEXT = [
   '',
   '/buscar <code>&lt;nome&gt;</code> — busca na AniList (até 5 resultados) com botão para adicionar',
   '/add <code>&lt;nome&gt;</code> — busca e adiciona à sua lista (até 3 opções)',
-  '/lista — mostra a sua lista, agrupada por status',
+  '/lista — mostra a sua lista, agrupada por status (toque no anime para ➕1 ep, definir episódio ou mudar o status)',
+  '/lista <code>@usuario</code> — mostra a lista de outra pessoa',
+  '/global — mostra todos os animes e quem está acompanhando cada um',
+  '/vi <code>&lt;nome&gt; &lt;ep&gt;</code> — registra o episódio que você viu. Exemplo: /vi solo leveling 5',
   '/remover <code>&lt;nome&gt;</code> — remove um anime da sua lista (pede confirmação)',
   '/ajuda — mostra esta mensagem',
 ].join('\n');

@@ -32,9 +32,65 @@ export function formatEntry(entry: ListEntryWithAnime): string {
   return `<b>${link}</b>\n${STATUS_LABELS[entry.status]} · ${formatProgress(entry)}`;
 }
 
-/** Botões da entrada (Fase 4: apenas remover; as demais ações entram na Fase 5). */
-export function entryKeyboard(entry: Pick<ListEntryWithAnime, 'id'>): InlineKeyboard {
-  return new InlineKeyboard().text('🗑 Remover', `rm:${entry.id}`);
+/** Letra usada no callback `st:<entryId>:<letra>` para cada status. */
+export const STATUS_BY_LETTER: Record<string, ListStatus> = {
+  A: 'ASSISTINDO',
+  Q: 'QUERO_VER',
+  C: 'COMPLETO',
+};
+
+/**
+ * Botões da entrada (6.4). Com `offerComplete`, acrescenta a pergunta
+ * "Marcar como completo?" (usada ao chegar no último episódio).
+ */
+export function entryKeyboard(
+  entry: Pick<ListEntryWithAnime, 'id'>,
+  options: { offerComplete?: boolean } = {},
+): InlineKeyboard {
+  const keyboard = new InlineKeyboard()
+    .text('➕1 ep', `inc:${entry.id}`)
+    .text('✏️ Definir ep', `setep:${entry.id}`)
+    .row();
+  for (const [letter, status] of Object.entries(STATUS_BY_LETTER)) {
+    keyboard.text(STATUS_LABELS[status], `st:${entry.id}:${letter}`);
+  }
+  keyboard.row().text('🗑 Remover', `rm:${entry.id}`);
+  if (options.offerComplete) keyboard.row().text('✅ Marcar como completo?', `st:${entry.id}:C`);
+  return keyboard;
+}
+
+/** Card da entrada: texto e botões, com a pergunta de completo quando chegou ao fim. */
+export function entryCard(
+  entry: ListEntryWithAnime,
+  options: { offerComplete?: boolean } = {},
+): { text: string; reply_markup: InlineKeyboard } {
+  const text = options.offerComplete
+    ? `${formatEntry(entry)}\n\n🎉 Você chegou ao último episódio! Marcar como completo?`
+    : formatEntry(entry);
+  return { text, reply_markup: entryKeyboard(entry, options) };
+}
+
+/** Botão por entrada da lista para abrir o card (callback `ent:<entryId>`). */
+export function openEntryKeyboard(entries: ListEntryWithAnime[], firstNumber = 1): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+  entries.forEach((entry, i) => {
+    keyboard
+      .text(`⚙️ ${firstNumber + i}. ${truncate(displayTitle(entry.anime), 35)}`, `ent:${entry.id}`)
+      .row();
+  });
+  return keyboard;
+}
+
+/** Escolha entre animes ambíguos do /vi (callback `vi:<entryId>:<ep>`). */
+export function pickEpisodeEntryKeyboard(
+  entries: ListEntryWithAnime[],
+  episode: number,
+): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+  for (const entry of entries) {
+    keyboard.text(truncate(displayTitle(entry.anime), 45), `vi:${entry.id}:${episode}`).row();
+  }
+  return keyboard;
 }
 
 /** Um botão "➕ Título" por resultado de busca (callback `add:<anilistId>`). */

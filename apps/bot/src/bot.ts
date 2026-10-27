@@ -1,11 +1,14 @@
 import { Bot, GrammyError } from 'grammy';
 import type { BotError } from 'grammy';
+import { registerEntryActions } from './callbacks/entry-actions.js';
 import { registerAdd } from './commands/add.js';
+import { registerGlobal } from './commands/global.js';
 import { registerHelp } from './commands/help.js';
 import { registerList } from './commands/list.js';
 import { registerRemove } from './commands/remove.js';
 import { registerSearch } from './commands/search.js';
 import { registerStart } from './commands/start.js';
+import { registerVi } from './commands/vi.js';
 import type { BotContext } from './context.js';
 import { GENERIC_ERROR_TEXT, NOT_OWNER_TEXT, errorMessage } from './messages.js';
 import { authMiddleware } from './middlewares/auth.js';
@@ -15,7 +18,9 @@ export const BOT_COMMANDS = [
   { command: 'ajuda', description: 'Ver comandos e atalhos' },
   { command: 'buscar', description: 'Buscar um anime pelo nome' },
   { command: 'add', description: 'Adicionar um anime à sua lista' },
-  { command: 'lista', description: 'Ver a sua lista de animes' },
+  { command: 'lista', description: 'Ver a sua lista (ou /lista @usuario)' },
+  { command: 'global', description: 'Ver a lista global de todos os usuários' },
+  { command: 'vi', description: 'Registrar o episódio que você viu' },
   { command: 'remover', description: 'Remover um anime da sua lista' },
 ];
 
@@ -48,12 +53,15 @@ export function createBot(token: string): Bot<BotContext> {
   const bot = new Bot<BotContext>(token);
 
   bot.use(authMiddleware);
+  registerEntryActions(bot);
   registerStart(bot);
   registerHelp(bot);
   registerSearch(bot);
   registerAdd(bot);
   registerList(bot);
   registerRemove(bot);
+  registerVi(bot);
+  registerGlobal(bot);
 
   bot.catch(handleError);
   return bot;

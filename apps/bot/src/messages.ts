@@ -37,3 +37,18 @@ export function errorMessage(error: unknown): string | null {
   if (error instanceof CoreError) return error.message;
   return null;
 }
+
+/** Junta linhas em mensagens de até `max` caracteres (limite do Telegram: 4096). */
+export function chunkLines(lines: string[], max = 3800): string[] {
+  const chunks: string[] = [];
+  let current = '';
+  for (const line of lines) {
+    if (current !== '' && current.length + line.length + 1 > max) {
+      chunks.push(current);
+      current = '';
+    }
+    current = current === '' ? line : `${current}\n${line}`;
+  }
+  if (current !== '') chunks.push(current);
+  return chunks;
+}
