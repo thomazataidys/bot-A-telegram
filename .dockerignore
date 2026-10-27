@@ -1,0 +1,32 @@
+# Dependências e builds locais
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/out
+**/.turbo
+**/*.tsbuildinfo
+
+# Controle de versão e ambiente
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Backups, logs e cobertura de testes
+backups
+coverage
+**/coverage
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Documentação local e coordenação de agentes
+.maestri
+.claude
+docs
+AGENTS.md
+CLAUDE.md
+PLANO.md
+README.md
