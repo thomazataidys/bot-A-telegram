@@ -12,6 +12,8 @@ const anilist = vi.hoisted(() => ({ getAnimeByMalId: vi.fn() }));
 vi.mock('../../anilist/index.js', () => anilist);
 const sync = vi.hoisted(() => ({ syncSingleAnime: vi.fn() }));
 vi.mock('../sync.js', () => sync);
+const users = vi.hoisted(() => ({ getUserByUsername: vi.fn() }));
+vi.mock('../users.js', () => users);
 
 import {
   AnimeAlreadyInListError,
@@ -24,7 +26,9 @@ import {
   addAnimeByAnilistId,
   addAnimeByMalId,
   findUserEntriesByTitle,
+  getGlobalList,
   getUserList,
+  getUserListByUsername,
   removeEntry,
 } from '../list.js';
 
@@ -173,6 +177,80 @@ describe('getUserList', () => {
     const list = await getUserList('u1');
     expect(list.ASSISTINDO[0]?.anime.nextEpisode).toEqual(episode);
     expect(list.ASSISTINDO[0]?.anime).not.toHaveProperty('episodes');
+  });
+});
+
+describe('getUserListByUsername', () => {
+  it('resolve o @username e devolve a lista do usuário', async () => {
+    users.getUserByUsername.mockResolvedValue(user('u2'));
+    db.prisma.user.findUnique.mockResolvedValue(user('u2'));
+    db.prisma.listEntry.findMany.mockResolvedValue([rawEntry('e9', 'u2', solo)]);
+
+    const list = await getUserListByUsername('@Luiz');
+
+    expect(users.getUserByUsername).toHaveBeenCalledWith('@Luiz');
+    expect(list.user.id).toBe('u2');
+    expect(list.ASSISTINDO.map((e) => e.id)).toEqual(['e9']);
+  });
+
+  it('propaga UserNotFoundError', async () => {
+    users.getUserByUsername.mockRejectedValue(new UserNotFoundError('x'));
+    await expect(getUserListByUsername('x')).rejects.toBeInstanceOf(UserNotFoundError);
+  });
+});
+
+describe('getGlobalList', () => {
+  it('agrega vários usuários no mesmo anime e ordena por título', async () => {
+    const frieren = anime('a2', 200, 'Sousou no Frieren', 'Frieren');
+    const withUser = (
+      id: string,
+      u: string,
+      name: string,
+      a: ReturnType<typeof anime>,
+      progress: number,
+    ) => ({
+      ...rawEntry(id, u, a),
+      progress,
+      user: { ...user(u), name },
+    });
+    db.prisma.listEntry.findMany.mockResolvedValue([
+      withUser('e1', 'u2', 'Thomaz', solo, 5),
+      withUser('e2', 'u3', 'Ana', solo, 3),
+      withUser('e3', 'u2', 'Thomaz', frieren, 1),
+    ]);
+
+    const items = await getGlobalList();
+
+    expect(items.map((i) => i.displayTitle)).toEqual(['Frieren', 'Solo Leveling']);
+    const soloItem = items[1];
+    expect(soloItem?.watchers.map((w) => [w.user.name, w.progress])).toEqual([
+      ['Ana', 3],
+      ['Thomaz', 5],
+    ]);
+    expect(soloItem?.nextEpisode).toBeNull();
+    expect(soloItem?.anime).not.toHaveProperty('nextEpisode');
+  });
+
+  it('traduz os filtros para a consulta', async () => {
+    db.prisma.listEntry.findMany.mockResolvedValue([]);
+    await getGlobalList({
+      userId: 'u1',
+      listStatus: 'COMPLETO',
+      animeStatus: 'RELEASING',
+      search: ' solo ',
+    });
+    const args = db.prisma.listEntry.findMany.mock.calls[0]?.[0] as { where: unknown };
+    expect(args.where).toEqual({
+      userId: 'u1',
+      status: 'COMPLETO',
+      anime: {
+        status: 'RELEASING',
+        OR: [
+          { titleEnglish: { contains: 'solo', mode: 'insensitive' } },
+          { titleRomaji: { contains: 'solo', mode: 'insensitive' } },
+        ],
+      },
+    });
   });
 });
 

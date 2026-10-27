@@ -10,6 +10,7 @@ import {
 } from '../errors.js';
 import { displayTitle, normalizeSearchQuery } from '../utils/index.js';
 import { syncSingleAnime } from './sync.js';
+import { getUserByUsername } from './users.js';
 
 export type ListEntryWithAnime = ListEntry & {
   anime: Anime & { nextEpisode: AiringEpisode | null };
@@ -21,6 +22,28 @@ export interface GroupedUserList {
   QUERO_VER: ListEntryWithAnime[];
   COMPLETO: ListEntryWithAnime[];
   totalCount: number;
+}
+
+export interface GlobalAnimeWatcher {
+  user: Pick<User, 'id' | 'name' | 'username' | 'telegramId' | 'active'>;
+  entryId: string;
+  status: ListStatus;
+  progress: number;
+}
+
+export interface GlobalAnimeItem {
+  anime: Anime;
+  displayTitle: string;
+  nextEpisode: AiringEpisode | null;
+  watchers: GlobalAnimeWatcher[];
+}
+
+export interface GlobalListFilter {
+  userId?: string;
+  listStatus?: ListStatus;
+  /** Status do anime na AniList, ex.: 'RELEASING', 'FINISHED'. */
+  animeStatus?: string;
+  search?: string;
 }
 
 export interface AddAnimeOptions {
@@ -147,6 +170,64 @@ export async function getUserList(userId: string): Promise<GroupedUserList> {
   for (const entry of entries) grouped[entry.status].push(entry);
   grouped.totalCount = entries.length;
   return grouped;
+}
+
+export async function getUserListByUsername(username: string): Promise<GroupedUserList> {
+  const user = await getUserByUsername(username);
+  return getUserList(user.id);
+}
+
+export async function getGlobalList(filter: GlobalListFilter = {}): Promise<GlobalAnimeItem[]> {
+  const search = filter.search?.trim();
+  const raws = await prisma.listEntry.findMany({
+    where: {
+      ...(filter.userId ? { userId: filter.userId } : {}),
+      ...(filter.listStatus ? { status: filter.listStatus } : {}),
+      anime: {
+        ...(filter.animeStatus ? { status: filter.animeStatus } : {}),
+        ...(search
+          ? {
+              OR: [
+                { titleEnglish: { contains: search, mode: 'insensitive' as const } },
+                { titleRomaji: { contains: search, mode: 'insensitive' as const } },
+              ],
+            }
+          : {}),
+      },
+    },
+    include: { ...entryInclude(), user: true },
+  });
+
+  const items = new Map<string, GlobalAnimeItem>();
+  for (const raw of raws) {
+    const { user, ...rawEntry } = raw;
+    const entry = toEntryWithAnime(rawEntry);
+    const { nextEpisode, ...anime } = entry.anime;
+    let item = items.get(anime.id);
+    if (!item) {
+      item = { anime, displayTitle: displayTitle(anime), nextEpisode, watchers: [] };
+      items.set(anime.id, item);
+    }
+    item.watchers.push({
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        telegramId: user.telegramId,
+        active: user.active,
+      },
+      entryId: entry.id,
+      status: entry.status,
+      progress: entry.progress,
+    });
+  }
+
+  return [...items.values()]
+    .map((item) => ({
+      ...item,
+      watchers: item.watchers.sort((a, b) => a.user.name.localeCompare(b.user.name, 'pt-BR')),
+    }))
+    .sort((a, b) => a.displayTitle.localeCompare(b.displayTitle, 'pt-BR'));
 }
 
 /** Entradas do usuário cujo título (english ou romaji) contém a busca; match exato primeiro. */
