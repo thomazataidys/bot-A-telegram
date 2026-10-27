@@ -94,12 +94,21 @@ export function pickEpisodeEntryKeyboard(
 }
 
 /** Um botão "➕ Título" por resultado de busca (callback `add:<anilistId>`). */
-export function searchResultsKeyboard(results: AniListMedia[]): InlineKeyboard {
+/** Com `episode`, o callback `adde:<id>:<ep>` oferece salvar o progresso depois de adicionar. */
+export function searchResultsKeyboard(results: AniListMedia[], episode?: number): InlineKeyboard {
   const keyboard = new InlineKeyboard();
   results.forEach((media, index) => {
-    keyboard.text(`➕ ${index + 1}. ${truncate(mediaTitle(media), 40)}`, `add:${media.id}`).row();
+    const data = episode === undefined ? `add:${media.id}` : `adde:${media.id}:${episode}`;
+    keyboard.text(`➕ ${index + 1}. ${truncate(mediaTitle(media), 40)}`, data).row();
   });
   return keyboard;
+}
+
+/** Sugestão de progresso depois de adicionar por um episódio compartilhado. */
+export function saveProgressKeyboard(entryId: string, episode: number): InlineKeyboard {
+  return new InlineKeyboard()
+    .text(`💾 Salvar progresso: ep ${episode}`, `pgs:${entryId}:${episode}`)
+    .text('Não', `pgn:${entryId}`);
 }
 
 export function removeConfirmKeyboard(entryId: string): InlineKeyboard {

@@ -1,4 +1,4 @@
-import { escapeHtml, searchAnime } from '@animebot/core';
+import { escapeHtml, searchAnimeForSeason } from '@animebot/core';
 import type { Bot } from 'grammy';
 import type { BotContext } from '../context.js';
 import { mediaTitle, searchResultsKeyboard } from '../keyboards/entry.js';
@@ -10,8 +10,9 @@ export async function replyWithSearchResults(
   query: string,
   limit: number,
   intro = 'Resultados para',
+  { season, episode }: { season?: number; episode?: number } = {},
 ): Promise<void> {
-  const results = await searchAnime(query, limit);
+  const results = await searchAnimeForSeason(query, season, limit);
   if (results.length === 0) {
     await ctx.reply(`Nenhum anime encontrado para <b>${escapeHtml(query)}</b>.`, HTML_OPTIONS);
     return;
@@ -26,7 +27,7 @@ export async function replyWithSearchResults(
   });
   await ctx.reply(`${escapeHtml(intro)} <b>${escapeHtml(query)}</b>:\n\n${lines.join('\n')}`, {
     ...HTML_OPTIONS,
-    reply_markup: searchResultsKeyboard(results),
+    reply_markup: searchResultsKeyboard(results, episode),
   });
 }
 

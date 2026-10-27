@@ -22,6 +22,7 @@ export const HELP_TEXT = [
   '<b>Atalhos</b>',
   '<code>+ nome do anime</code> — mostra até 3 opções para adicionar como assistindo',
   'Cole um link da AniList, MyAnimeList ou Crunchyroll em qualquer mensagem para adicionar à sua lista',
+  'Cole o compartilhamento de um episódio da Crunchyroll (app): o bot acha o anime e sugere salvar o episódio como progresso',
 ].join('\n');
 
 export function registerHelp(bot: Bot<BotContext>): void {
