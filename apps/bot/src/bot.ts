@@ -10,6 +10,7 @@ import { registerSearch } from './commands/search.js';
 import { registerStart } from './commands/start.js';
 import { registerVi } from './commands/vi.js';
 import type { BotContext } from './context.js';
+import { registerMessageLinks } from './handlers/message-links.js';
 import { GENERIC_ERROR_TEXT, NOT_OWNER_TEXT, errorMessage } from './messages.js';
 import { authMiddleware } from './middlewares/auth.js';
 
@@ -62,6 +63,8 @@ export function createBot(token: string): Bot<BotContext> {
   registerRemove(bot);
   registerVi(bot);
   registerGlobal(bot);
+  // Depois do handler de "✏️ Definir ep" (registerEntryActions), que consome o número antes.
+  registerMessageLinks(bot);
 
   bot.catch(handleError);
   return bot;

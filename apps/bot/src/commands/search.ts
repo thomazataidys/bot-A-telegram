@@ -9,6 +9,7 @@ export async function replyWithSearchResults(
   ctx: BotContext,
   query: string,
   limit: number,
+  intro = 'Resultados para',
 ): Promise<void> {
   const results = await searchAnime(query, limit);
   if (results.length === 0) {
@@ -23,7 +24,7 @@ export async function replyWithSearchResults(
     const title = `<a href="${escapeHtml(media.siteUrl)}">${escapeHtml(mediaTitle(media))}</a>`;
     return `${index + 1}. ${title}${details ? ` (${escapeHtml(details)})` : ''}`;
   });
-  await ctx.reply(`Resultados para <b>${escapeHtml(query)}</b>:\n\n${lines.join('\n')}`, {
+  await ctx.reply(`${escapeHtml(intro)} <b>${escapeHtml(query)}</b>:\n\n${lines.join('\n')}`, {
     ...HTML_OPTIONS,
     reply_markup: searchResultsKeyboard(results),
   });

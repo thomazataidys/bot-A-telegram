@@ -1,41 +1,32 @@
-import { AnimeAlreadyInListError, addAnimeByAnilistId } from '@animebot/core';
+import { addAnimeByAnilistId, parseAddArgument } from '@animebot/core';
 import type { Bot } from 'grammy';
+import { addAndReply, handleAnimeInput } from '../add-flow.js';
 import type { BotContext } from '../context.js';
-import { entryKeyboard, formatEntry } from '../keyboards/entry.js';
-import { HTML_OPTIONS } from '../messages.js';
-import { replyWithSearchResults } from './search.js';
 
 export function registerAdd(bot: Bot<BotContext>): void {
-  // Por enquanto só nome; links (AniList, MAL, Crunchyroll) entram na Fase 6.
   bot.command('add', async (ctx) => {
     const arg = ctx.match.trim();
     if (arg === '') {
-      await ctx.reply('Use /add <nome do anime>. Exemplo: /add solo leveling');
+      await ctx.reply('Use /add <nome ou link do anime>. Exemplo: /add solo leveling');
       return;
     }
-    if (/^https?:\/\//i.test(arg)) {
-      await ctx.reply('Ainda não consigo adicionar por link. Envie o nome do anime: /add <nome>.');
+    const input = parseAddArgument(arg);
+    if (!input) {
+      await ctx.reply(
+        'Não reconheci esse link. Envie um link da AniList, MyAnimeList ou Crunchyroll, ou o nome do anime.',
+      );
       return;
     }
-    await replyWithSearchResults(ctx, arg, 3);
+    await handleAnimeInput(ctx, input);
   });
 
   bot.callbackQuery(/^add:(\d+)$/, async (ctx) => {
     const anilistId = Number(ctx.match[1]);
-    try {
-      const entry = await addAnimeByAnilistId(anilistId, { userId: ctx.user.id });
-      await ctx.answerCallbackQuery({ text: 'Adicionado à sua lista!' });
-      await ctx.reply(`✅ Adicionado à sua lista:\n\n${formatEntry(entry)}`, {
-        ...HTML_OPTIONS,
-        reply_markup: entryKeyboard(entry),
-      });
-    } catch (error) {
-      if (!(error instanceof AnimeAlreadyInListError)) throw error;
-      await ctx.answerCallbackQuery({ text: 'Já está na sua lista.' });
-      await ctx.reply(`Já está na sua lista:\n\n${formatEntry(error.entry)}`, {
-        ...HTML_OPTIONS,
-        reply_markup: entryKeyboard(error.entry),
-      });
-    }
+    const outcome = await addAndReply(ctx, () =>
+      addAnimeByAnilistId(anilistId, { userId: ctx.user.id }),
+    );
+    await ctx.answerCallbackQuery({
+      text: outcome === 'added' ? 'Adicionado à sua lista!' : 'Já está na sua lista.',
+    });
   });
 }
