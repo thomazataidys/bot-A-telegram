@@ -102,21 +102,23 @@ export function UpcomingEpisodesList({
                       </span>
                     </div>
 
-                    {item.watchers.length > 0 && (
+                    {item.watchers.some((w) => w.user.active) && (
                       <div className="flex items-center gap-1.5 flex-wrap pt-1">
                         <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        {item.watchers.map((watcher) => (
-                          <Badge
-                            key={watcher.entryId}
-                            variant="secondary"
-                            className="text-[11px] font-normal"
-                          >
-                            {watcher.user.username
-                              ? `@${watcher.user.username}`
-                              : watcher.user.name}{' '}
-                            (ep {watcher.progress})
-                          </Badge>
-                        ))}
+                        {item.watchers
+                          .filter((w) => w.user.active)
+                          .map((watcher) => (
+                            <Badge
+                              key={watcher.entryId}
+                              variant="secondary"
+                              className="text-[11px] font-normal"
+                            >
+                              {watcher.user.username
+                                ? `@${watcher.user.username}`
+                                : watcher.user.name}{' '}
+                              (ep {watcher.progress})
+                            </Badge>
+                          ))}
                       </div>
                     )}
                   </div>
