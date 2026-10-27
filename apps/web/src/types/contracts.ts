@@ -17,6 +17,8 @@ import type {
   AniListStatus,
   AppSettings,
   CreatePanelUserInput,
+  DashboardStats as CoreDashboardStats,
+  GetScheduleParams,
   GlobalAnimeItem as CoreGlobalAnimeItem,
   GlobalAnimeWatcher as CoreGlobalAnimeWatcher,
   GlobalListFilter,
@@ -25,12 +27,16 @@ import type {
   PartialAppSettingsInput,
   ProgressUpdateResult,
   RuntimeStatus as CoreRuntimeStatus,
+  ScheduleDayGroup as CoreScheduleDayGroup,
+  ScheduleItem as CoreScheduleItem,
+  ScheduleResult as CoreScheduleResult,
   SyncResult as CoreSyncResult,
   UpdateUserInput,
   UpsertTelegramUserInput,
   UpsertTelegramUserResult,
   UserRegistrationState,
   UserWithStats as CoreUserWithStats,
+  WeekRange as CoreWeekRange,
 } from '@animebot/core';
 
 export type {
@@ -49,6 +55,8 @@ export type {
   AniListStatus,
   AppSettings,
   CreatePanelUserInput,
+  CoreDashboardStats,
+  GetScheduleParams,
   CoreGlobalAnimeItem,
   CoreGlobalAnimeWatcher,
   GlobalListFilter,
@@ -57,12 +65,16 @@ export type {
   PartialAppSettingsInput,
   ProgressUpdateResult,
   CoreRuntimeStatus,
+  CoreScheduleDayGroup,
+  CoreScheduleItem,
+  CoreScheduleResult,
   CoreSyncResult,
   UpdateUserInput,
   UpsertTelegramUserInput,
   UpsertTelegramUserResult,
   UserRegistrationState,
   CoreUserWithStats,
+  CoreWeekRange,
 };
 
 /**
@@ -124,48 +136,37 @@ export interface GlobalAnimeItem {
   watchers: GlobalAnimeWatcher[];
 }
 
-/**
- * Tipos dos serviços schedule e sync completo (ainda em implementação no core).
- */
-export interface WeekRange {
-  offsetWeeks: number;
-  timezone: string;
-  startUtc: Date | string;
-  endUtc: Date | string;
-  periodLabel: string;
+export interface WeekRange extends Omit<CoreWeekRange, 'startUtc' | 'endUtc'> {
+  startUtc: CoreWeekRange['startUtc'] | string;
+  endUtc: CoreWeekRange['endUtc'] | string;
 }
 
-export interface ScheduleItem {
+export interface ScheduleItem
+  extends Omit<
+    CoreScheduleItem,
+    | 'airingEpisode'
+    | 'anime'
+    | 'japanAiringAt'
+    | 'subbedAiringAt'
+    | 'watchers'
+  > {
   airingEpisode: AiringEpisode;
   anime: Anime;
-  displayTitle: string;
-  episode: number;
-  japanAiringAt: Date | string;
-  subbedAiringAt: Date | string;
-  formattedTime: string;
-  formattedDayHeader: string;
-  dayKey: string;
+  japanAiringAt: CoreScheduleItem['japanAiringAt'] | string;
+  subbedAiringAt: CoreScheduleItem['subbedAiringAt'] | string;
   watchers: GlobalAnimeWatcher[];
 }
 
-export interface ScheduleDayGroup {
-  dayKey: string;
-  dayHeader: string;
+export interface ScheduleDayGroup
+  extends Omit<CoreScheduleDayGroup, 'items'> {
   items: ScheduleItem[];
 }
 
-export interface ScheduleResult {
+export interface ScheduleResult
+  extends Omit<CoreScheduleResult, 'weekRange' | 'days' | 'items'> {
   weekRange: WeekRange;
-  delayMinutes: number;
-  timezone: string;
   days: ScheduleDayGroup[];
   items: ScheduleItem[];
-}
-
-export interface GetScheduleParams {
-  userId?: string;
-  offsetWeeks?: number;
-  now?: Date;
 }
 
 export interface SyncResult
@@ -180,13 +181,14 @@ export interface RuntimeStatus
   lastNotificationAt: CoreRuntimeStatus['lastNotificationAt'] | string;
 }
 
-export interface DashboardStats {
-  activeUsersCount: number;
-  totalUsersCount: number;
-  trackedAnimesCount: number;
+export interface DashboardStats
+  extends Omit<
+    CoreDashboardStats,
+    'upcomingEpisodes48h' | 'lastSyncAt' | 'lastNotificationAt'
+  > {
   upcomingEpisodes48h: ScheduleItem[];
-  lastSyncAt: Date | string | null;
-  lastNotificationAt: Date | string | null;
+  lastSyncAt: CoreDashboardStats['lastSyncAt'] | string;
+  lastNotificationAt: CoreDashboardStats['lastNotificationAt'] | string;
 }
 
 export function getAnimeDisplayTitle(
@@ -194,6 +196,34 @@ export function getAnimeDisplayTitle(
 ): string {
   const english = anime.titleEnglish?.trim();
   return english && english.length > 0 ? english : anime.titleRomaji;
+}
+
+export function formatRelativeTimeBR(
+  value: Date | string | null | undefined,
+  now: Date = new Date(),
+): string {
+  if (!value) {
+    return 'Nunca';
+  }
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) {
+    return 'Nunca';
+  }
+
+  const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffSeconds < 60) {
+    return 'Agora mesmo';
+  }
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) {
+    return `Há ${diffMinutes} min`;
+  }
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `Há ${diffHours} ${diffHours === 1 ? 'hora' : 'horas'}`;
+  }
+  const diffDays = Math.floor(diffHours / 24);
+  return `Há ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`;
 }
 
 export const settingsFormSchema = z.object({
