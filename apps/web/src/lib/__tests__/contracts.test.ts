@@ -5,6 +5,7 @@ import {
   settingsFormSchema,
 } from '../../types/contracts';
 import {
+  serializeGlobalAnimeItem,
   serializeScheduleItem,
   serializeUserWithStats,
 } from '../serialize';
@@ -132,6 +133,57 @@ describe('contracts & settings schema', () => {
           entryId: 'e2',
           status: 'ASSISTINDO',
           progress: 0,
+        },
+      ],
+    });
+
+    expect(item.watchers).toHaveLength(1);
+    expect(item.watchers[0]?.user.id).toBe('u-active');
+    expect(item.watchers[0]?.user.telegramId).toBe('100');
+  });
+
+  it('filters out inactive watchers in serializeGlobalAnimeItem', () => {
+    const now = new Date();
+    const item = serializeGlobalAnimeItem({
+      anime: {
+        id: 'a1',
+        anilistId: 1,
+        malId: null,
+        titleEnglish: 'Solo Leveling',
+        titleRomaji: 'Ore dake Level Up na Ken',
+        coverUrl: null,
+        siteUrl: 'https://anilist.co/anime/1',
+        format: 'TV',
+        status: 'RELEASING',
+        totalEpisodes: 12,
+        lastSyncedAt: now,
+      },
+      displayTitle: 'Solo Leveling',
+      nextEpisode: null,
+      watchers: [
+        {
+          user: {
+            id: 'u-active',
+            name: 'Thomaz',
+            username: 'thomaz',
+            telegramId: 100n,
+            active: true,
+          },
+          entryId: 'e1',
+          status: 'ASSISTINDO',
+          progress: 5,
+        },
+        {
+          user: {
+            id: 'u-inactive',
+            name: 'Inativo',
+            username: 'inativo',
+            telegramId: 200n,
+            active: false,
+          },
+          entryId: 'e2',
+          status: 'ASSISTINDO',
+          progress: 1,
         },
       ],
     });

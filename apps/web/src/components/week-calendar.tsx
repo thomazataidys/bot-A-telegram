@@ -102,7 +102,7 @@ export function WeekCalendar({
           }))
           .filter((item) => {
             if (activeUserId === 'ALL') {
-              return true;
+              return item.watchers.length > 0;
             }
             return item.watchers.some((w) => w.user.id === activeUserId);
           }),

@@ -48,8 +48,12 @@ export default async function AnimesPage({
     listUsersWithStats(),
   ]);
 
-  const items = rawItems.map(serializeGlobalAnimeItem);
-  const users = rawUsers.map(serializeUserWithStats);
+  const items = rawItems
+    .map(serializeGlobalAnimeItem)
+    .filter((item) => item.watchers.length > 0);
+  const users = rawUsers
+    .filter((u) => u.active)
+    .map(serializeUserWithStats);
 
   return (
     <div className="space-y-6">

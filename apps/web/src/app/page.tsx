@@ -39,7 +39,9 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
     getSettings(),
   ]);
 
-  const upcomingItems = stats.upcomingEpisodes48h.map(serializeScheduleItem);
+  const upcomingItems = stats.upcomingEpisodes48h
+    .map(serializeScheduleItem)
+    .filter((item) => item.watchers.length > 0);
 
   return (
     <div className="space-y-6">
@@ -71,7 +73,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
         />
 
         <StatCard
-          title="Último Sync"
+          title="Última Sincronização"
           value={formatRelativeTimeBR(stats.lastSyncAt)}
           subtitle={formatExactDateTimeBR(
             stats.lastSyncAt,

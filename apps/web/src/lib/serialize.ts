@@ -45,14 +45,16 @@ export function serializeGlobalAnimeItem(
 ): GlobalAnimeItem {
   return {
     ...item,
-    watchers: item.watchers.map((w) => ({
-      ...w,
-      user: {
-        ...w.user,
-        telegramId:
-          w.user.telegramId !== null ? w.user.telegramId.toString() : null,
-      },
-    })),
+    watchers: item.watchers
+      .filter((w) => w.user.active)
+      .map((w) => ({
+        ...w,
+        user: {
+          ...w.user,
+          telegramId:
+            w.user.telegramId !== null ? w.user.telegramId.toString() : null,
+        },
+      })),
   };
 }
 
