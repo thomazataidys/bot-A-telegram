@@ -1,25 +1,74 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
-import { Tv } from 'lucide-react';
-import { ComingSoonCard } from '@/components/coming-soon-card';
+import { getGlobalList, listUsersWithStats } from '@animebot/core';
+import type { GlobalListFilter, ListStatus } from '@/types/contracts';
+import { AnimeGrid } from '@/components/anime-grid';
+import {
+  serializeGlobalAnimeItem,
+  serializeUserWithStats,
+} from '@/lib/serialize';
 
 export const metadata: Metadata = {
   title: 'Animes',
 };
 
-export default function AnimesPage(): React.JSX.Element {
+export const dynamic = 'force-dynamic';
+
+interface AnimesSearchParams {
+  userId?: string;
+  listStatus?: string;
+  animeStatus?: string;
+  search?: string;
+}
+
+function parseListStatus(raw: string | undefined): ListStatus | undefined {
+  if (raw === 'ASSISTINDO' || raw === 'QUERO_VER' || raw === 'COMPLETO') {
+    return raw;
+  }
+  return undefined;
+}
+
+export default async function AnimesPage({
+  searchParams,
+}: {
+  searchParams: Promise<AnimesSearchParams>;
+}): Promise<React.JSX.Element> {
+  const params = await searchParams;
+  const parsedStatus = parseListStatus(params.listStatus);
+
+  const filter: GlobalListFilter = {
+    ...(params.userId ? { userId: params.userId } : {}),
+    ...(parsedStatus ? { listStatus: parsedStatus } : {}),
+    ...(params.animeStatus ? { animeStatus: params.animeStatus } : {}),
+    ...(params.search ? { search: params.search } : {}),
+  };
+
+  const [rawItems, rawUsers] = await Promise.all([
+    getGlobalList(filter),
+    listUsersWithStats(),
+  ]);
+
+  const items = rawItems.map(serializeGlobalAnimeItem);
+  const users = rawUsers.map(serializeUserWithStats);
+
   return (
-    <ComingSoonCard
-      title="Animes (Lista Global)"
-      subtitle="Todos os animes acompanhados pelo grupo, quem assiste cada título e o progresso individual."
-      description="Esta página consumirá getGlobalList() e listUsersWithStats() de @animebot/core."
-      icon={Tv}
-      features={[
-        'Catálogo visual com capa, título (inglês/romaji) e status de exibição na AniList',
-        'Indicação do próximo episódio e data/hora estimada de lançamento legendado',
-        'Lista de quem acompanha cada anime com o respectivo episódio atual e status',
-        'Filtros combinados por usuário e por status da lista (Assistindo, Quero ver, Completo)',
-      ]}
-    />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          Animes (Lista Global)
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Todos os animes presentes nas listas do grupo, próximo episódio e o
+          progresso de cada membro.
+        </p>
+      </div>
+
+      <AnimeGrid
+        items={items}
+        users={users}
+        initialUserId={params.userId ?? 'ALL'}
+        initialStatus={parsedStatus ?? 'ALL'}
+      />
+    </div>
   );
 }
