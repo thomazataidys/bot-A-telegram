@@ -42,7 +42,7 @@ export function formatScheduleLines(
     .filter((day) => day.items.length > 0);
 
   const scope = showWatchers ? ' — todos' : '';
-  const lines = [`<b>📅 ${label}${scope} (${schedule.weekRange.periodLabel})</b>`];
+  const lines = [`<b>📅 ${label}${scope} (${escapeHtml(schedule.weekRange.periodLabel)})</b>`];
   if (days.length === 0) {
     lines.push('', 'Nenhum episódio previsto neste período.');
     return lines;
