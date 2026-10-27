@@ -30,6 +30,12 @@ export const BOT_COMMANDS = [
   { command: 'remover', description: 'Remover um anime da sua lista' },
 ];
 
+/** Comando de admin: só aparece no menu dos administradores de grupos. */
+export const GROUP_ADMIN_COMMANDS = [
+  ...BOT_COMMANDS,
+  { command: 'configurargrupo', description: 'Definir este grupo para receber os avisos (admin)' },
+];
+
 async function handleError({ error, ctx }: BotError<BotContext>): Promise<void> {
   // Mensagem antiga demais para responder o callback: não há o que fazer.
   if (

@@ -1,6 +1,6 @@
 import './env.js';
 import { prisma } from '@animebot/db';
-import { BOT_COMMANDS, createBot } from './bot.js';
+import { BOT_COMMANDS, GROUP_ADMIN_COMMANDS, createBot } from './bot.js';
 import { startScheduler } from './jobs/scheduler.js';
 
 const token = process.env['BOT_TOKEN'];
@@ -21,6 +21,7 @@ process.once('SIGINT', () => void shutdown('SIGINT'));
 process.once('SIGTERM', () => void shutdown('SIGTERM'));
 
 await bot.api.setMyCommands(BOT_COMMANDS);
+await bot.api.setMyCommands(GROUP_ADMIN_COMMANDS, { scope: { type: 'all_chat_administrators' } });
 await bot.start({
   onStart: (info) => {
     console.log(`Bot @${info.username} iniciado`);
