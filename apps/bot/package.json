@@ -14,6 +14,10 @@
     "@animebot/core": "workspace:*",
     "@animebot/db": "workspace:*",
     "dotenv": "^18.0.9",
-    "grammy": "^1.46.0"
+    "grammy": "^1.46.0",
+    "node-cron": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node-cron": "^3.0.11"
   }
 }
