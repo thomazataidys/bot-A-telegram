@@ -9,5 +9,11 @@
     "lint": "eslint src",
     "test": "vitest run --passWithNoTests",
     "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@animebot/core": "workspace:*",
+    "@animebot/db": "workspace:*",
+    "dotenv": "^18.0.9",
+    "grammy": "^1.46.0"
   }
 }
