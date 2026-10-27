@@ -2,6 +2,7 @@ import type { ListEntryWithAnime } from '@animebot/core';
 import { displayTitle, escapeHtml } from '@animebot/core';
 import { InlineKeyboard } from 'grammy';
 import type { AniListMedia } from '@animebot/core';
+import type { AnimeCard } from '../cards.js';
 import { truncate } from '../messages.js';
 
 type ListStatus = ListEntryWithAnime['status'];
@@ -70,6 +71,31 @@ export function entryCard(
   return { text, reply_markup: entryKeyboard(entry, options) };
 }
 
+/** Imagem de um anime já salvo: capa, com o banner de reserva. */
+export function animeImage(
+  anime: Pick<ListEntryWithAnime['anime'], 'coverUrl' | 'bannerUrl'>,
+): string | null {
+  return anime.coverUrl ?? anime.bannerUrl ?? null;
+}
+
+/** Imagem de um resultado da AniList: capa grande, com o banner de reserva. */
+export function mediaImage(media: AniListMedia): string | null {
+  return media.coverImage.extraLarge ?? media.coverImage.large ?? media.bannerImage;
+}
+
+/** Card (foto + legenda + botões) da entrada; `prefix` vai antes do texto, em HTML. */
+export function entryAnimeCard(
+  entry: ListEntryWithAnime,
+  options: { offerComplete?: boolean; prefix?: string } = {},
+): AnimeCard {
+  const { text, reply_markup } = entryCard(entry, options);
+  return {
+    imageUrl: animeImage(entry.anime),
+    caption: options.prefix ? `${options.prefix}\n\n${text}` : text,
+    keyboard: reply_markup,
+  };
+}
+
 /** Botão por entrada da lista para abrir o card (callback `ent:<entryId>`). */
 export function openEntryKeyboard(entries: ListEntryWithAnime[], firstNumber = 1): InlineKeyboard {
   const keyboard = new InlineKeyboard();
@@ -93,15 +119,22 @@ export function pickEpisodeEntryKeyboard(
   return keyboard;
 }
 
-/** Um botão "➕ Título" por resultado de busca (callback `add:<anilistId>`). */
-/** Com `episode`, o callback `adde:<id>:<ep>` oferece salvar o progresso depois de adicionar. */
-export function searchResultsKeyboard(results: AniListMedia[], episode?: number): InlineKeyboard {
-  const keyboard = new InlineKeyboard();
-  results.forEach((media, index) => {
-    const data = episode === undefined ? `add:${media.id}` : `adde:${media.id}:${episode}`;
-    keyboard.text(`➕ ${index + 1}. ${truncate(mediaTitle(media), 40)}`, data).row();
-  });
-  return keyboard;
+/**
+ * Botão "➕ Adicionar" de um resultado de busca (callback `add:<anilistId>`).
+ * Com `episode`, o callback `adde:<id>:<ep>` oferece salvar o progresso depois de adicionar.
+ */
+export function addResultKeyboard(media: AniListMedia, episode?: number): InlineKeyboard {
+  const data = episode === undefined ? `add:${media.id}` : `adde:${media.id}:${episode}`;
+  return new InlineKeyboard().text('➕ Adicionar', data);
+}
+
+/** Legenda HTML de um resultado de busca: "1. Título (TV · 12 eps)". */
+export function searchResultCaption(media: AniListMedia, index: number): string {
+  const details = [media.format, media.episodes ? `${media.episodes} eps` : null]
+    .filter(Boolean)
+    .join(' · ');
+  const title = `<a href="${escapeHtml(media.siteUrl)}">${escapeHtml(mediaTitle(media))}</a>`;
+  return `${index + 1}. <b>${title}</b>${details ? ` (${escapeHtml(details)})` : ''}`;
 }
 
 /** Sugestão de progresso depois de adicionar por um episódio compartilhado. */

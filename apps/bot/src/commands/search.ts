@@ -1,10 +1,11 @@
 import { escapeHtml, searchAnimeForSeason } from '@animebot/core';
 import type { Bot } from 'grammy';
 import type { BotContext } from '../context.js';
-import { mediaTitle, searchResultsKeyboard } from '../keyboards/entry.js';
+import { sendAnimeCard } from '../cards.js';
+import { addResultKeyboard, mediaImage, searchResultCaption } from '../keyboards/entry.js';
 import { HTML_OPTIONS } from '../messages.js';
 
-/** Busca na AniList e responde com os resultados e botões "➕ Adicionar". */
+/** Busca na AniList e responde com uma foto por resultado, cada uma com "➕ Adicionar". */
 export async function replyWithSearchResults(
   ctx: BotContext,
   query: string,
@@ -18,17 +19,15 @@ export async function replyWithSearchResults(
     return;
   }
 
-  const lines = results.map((media, index) => {
-    const details = [media.format, media.episodes ? `${media.episodes} eps` : null]
-      .filter(Boolean)
-      .join(' · ');
-    const title = `<a href="${escapeHtml(media.siteUrl)}">${escapeHtml(mediaTitle(media))}</a>`;
-    return `${index + 1}. ${title}${details ? ` (${escapeHtml(details)})` : ''}`;
-  });
-  await ctx.reply(`${escapeHtml(intro)} <b>${escapeHtml(query)}</b>:\n\n${lines.join('\n')}`, {
-    ...HTML_OPTIONS,
-    reply_markup: searchResultsKeyboard(results, episode),
-  });
+  await ctx.reply(`${escapeHtml(intro)} <b>${escapeHtml(query)}</b>:`, HTML_OPTIONS);
+  // Uma foto por opção, na ordem do ranking, cada uma com o seu botão de adicionar.
+  for (const [index, media] of results.entries()) {
+    await sendAnimeCard(ctx, {
+      imageUrl: mediaImage(media),
+      caption: searchResultCaption(media, index),
+      keyboard: addResultKeyboard(media, episode),
+    });
+  }
 }
 
 export function registerSearch(bot: Bot<BotContext>): void {

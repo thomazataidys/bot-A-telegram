@@ -10,7 +10,8 @@ import {
 import type { ListEntryWithAnime } from '@animebot/core';
 import type { Bot } from 'grammy';
 import type { BotContext } from '../context.js';
-import { STATUS_BY_LETTER, entryCard } from '../keyboards/entry.js';
+import { editCard, sendAnimeCard } from '../cards.js';
+import { STATUS_BY_LETTER, entryAnimeCard, entryCard } from '../keyboards/entry.js';
 import { HTML_OPTIONS, NOT_OWNER_TEXT } from '../messages.js';
 import { pendingEpisodes, pendingKey } from '../pending.js';
 
@@ -31,7 +32,7 @@ async function refreshCard(
   offerComplete = false,
 ): Promise<void> {
   const { text, reply_markup } = entryCard(entry, { offerComplete });
-  await ctx.editMessageText(text, { ...HTML_OPTIONS, reply_markup });
+  await editCard(ctx, text, reply_markup);
 }
 
 export function registerEntryActions(bot: Bot<BotContext>): void {
@@ -40,8 +41,7 @@ export function registerEntryActions(bot: Bot<BotContext>): void {
     const entry = await getOwnEntry(ctx, ctx.match[1] as string);
     if (!entry) return;
     await ctx.answerCallbackQuery();
-    const { text, reply_markup } = entryCard(entry);
-    await ctx.reply(text, { ...HTML_OPTIONS, reply_markup });
+    await sendAnimeCard(ctx, entryAnimeCard(entry));
   });
 
   bot.callbackQuery(/^inc:(.+)$/, async (ctx) => {
@@ -102,10 +102,7 @@ export function registerEntryActions(bot: Bot<BotContext>): void {
         ctx.user.id,
       );
       pendingEpisodes.delete(key);
-      const { text: cardText, reply_markup } = entryCard(entry, {
-        offerComplete: reachedTotalEpisodes,
-      });
-      await ctx.reply(cardText, { ...HTML_OPTIONS, reply_markup });
+      await sendAnimeCard(ctx, entryAnimeCard(entry, { offerComplete: reachedTotalEpisodes }));
     } catch (error) {
       if (error instanceof InvalidEpisodeNumberError) {
         await ctx.reply(`${error.message}. Envie outro número.`);

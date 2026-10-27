@@ -1,13 +1,9 @@
-import {
-  AnimeAlreadyInListError,
-  addAnimeByAnilistId,
-  addAnimeByMalId,
-} from '@animebot/core';
+import { AnimeAlreadyInListError, addAnimeByAnilistId, addAnimeByMalId } from '@animebot/core';
 import type { ListEntryWithAnime, ParsedAnimeInput } from '@animebot/core';
+import { sendAnimeCard } from './cards.js';
 import { replyWithSearchResults } from './commands/search.js';
 import type { BotContext } from './context.js';
-import { entryKeyboard, formatEntry, saveProgressKeyboard } from './keyboards/entry.js';
-import { HTML_OPTIONS } from './messages.js';
+import { entryAnimeCard, saveProgressKeyboard } from './keyboards/entry.js';
 
 export type AddOutcome = 'added' | 'already';
 
@@ -24,7 +20,7 @@ async function suggestProgress(
 }
 
 /**
- * Adiciona à lista de quem pediu e responde com o card; se já existir, mostra a entrada atual.
+ * Adiciona à lista de quem pediu e responde com o card (foto + legenda); se já existir, mostra a entrada atual.
  * Com `episode` (compartilhamento da Crunchyroll), sugere salvar o progresso nesse episódio.
  */
 export async function addAndReply(
@@ -34,25 +30,22 @@ export async function addAndReply(
 ): Promise<AddOutcome> {
   try {
     const entry = await add();
-    await ctx.reply(`✅ Adicionado à sua lista:\n\n${formatEntry(entry)}`, {
-      ...HTML_OPTIONS,
-      reply_markup: entryKeyboard(entry),
-    });
+    await sendAnimeCard(ctx, entryAnimeCard(entry, { prefix: '✅ Adicionado à sua lista:' }));
     await suggestProgress(ctx, entry, episode);
     return 'added';
   } catch (error) {
     if (!(error instanceof AnimeAlreadyInListError)) throw error;
-    await ctx.reply(`Já está na sua lista:\n\n${formatEntry(error.entry)}`, {
-      ...HTML_OPTIONS,
-      reply_markup: entryKeyboard(error.entry),
-    });
+    await sendAnimeCard(ctx, entryAnimeCard(error.entry, { prefix: 'Já está na sua lista:' }));
     await suggestProgress(ctx, error.entry, episode);
     return 'already';
   }
 }
 
 function crunchyrollEpisodeIntro(season?: number, episode?: number): string {
-  const details = [season === undefined ? null : `T${season}`, episode === undefined ? null : `ep ${episode}`]
+  const details = [
+    season === undefined ? null : `T${season}`,
+    episode === undefined ? null : `ep ${episode}`,
+  ]
     .filter(Boolean)
     .join(' ');
   return `Episódio da Crunchyroll${details ? ` (${details})` : ''}, opções para`;

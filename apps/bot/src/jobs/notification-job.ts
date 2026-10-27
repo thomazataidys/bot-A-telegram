@@ -2,7 +2,7 @@ import { escapeHtml, formatUserMention, processPendingNotifications } from '@ani
 import type { PendingNotification } from '@animebot/core';
 import type { Api } from 'grammy';
 import type { InlineKeyboardMarkup } from 'grammy/types';
-import { HTML_OPTIONS } from '../messages.js';
+import { sendAnimeCard } from '../cards.js';
 
 export function notificationText(notification: PendingNotification): string {
   const mentions = notification.watchers.map((w) => formatUserMention(w.user)).join(' ');
@@ -11,6 +11,11 @@ export function notificationText(notification: PendingNotification): string {
     `<b>${escapeHtml(notification.displayTitle)}</b> — episódio ${notification.episode} já deve estar disponível.`,
     mentions,
   ].join('\n');
+}
+
+/** Banner (imagem larga) do anime, com a capa de reserva. */
+export function notificationImage(notification: PendingNotification): string | null {
+  return notification.anime.bannerUrl ?? notification.anime.coverUrl ?? null;
 }
 
 export function notificationKeyboard(notification: PendingNotification): InlineKeyboardMarkup {
@@ -30,10 +35,15 @@ export function notificationKeyboard(notification: PendingNotification): InlineK
 export async function runNotificationJob(api: Api): Promise<void> {
   try {
     const result = await processPendingNotifications(async (notification, groupChatId) => {
-      await api.sendMessage(groupChatId, notificationText(notification), {
-        ...HTML_OPTIONS,
-        reply_markup: notificationKeyboard(notification),
-      });
+      await sendAnimeCard(
+        api,
+        {
+          imageUrl: notificationImage(notification),
+          caption: notificationText(notification),
+          keyboard: notificationKeyboard(notification),
+        },
+        groupChatId,
+      );
     });
     if (result.sentCount > 0 || result.failedCount > 0) {
       console.log(

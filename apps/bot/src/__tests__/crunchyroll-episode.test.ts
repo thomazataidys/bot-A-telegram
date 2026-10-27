@@ -19,7 +19,7 @@ import { handleAnimeInput } from '../add-flow.js';
 import { registerAdd } from '../commands/add.js';
 import { HELP_TEXT } from '../commands/help.js';
 import type { BotContext } from '../context.js';
-import { saveProgressKeyboard, searchResultsKeyboard } from '../keyboards/entry.js';
+import { addResultKeyboard, saveProgressKeyboard } from '../keyboards/entry.js';
 import { NOT_OWNER_TEXT } from '../messages.js';
 
 const SHARE =
@@ -29,7 +29,8 @@ const media = (id: number): AniListMedia => ({
   id,
   idMal: null,
   title: { romaji: 'Ore dake Level Up na Ken', english: 'Solo Leveling Season 2' },
-  coverImage: { large: null },
+  bannerImage: null,
+  coverImage: { extraLarge: null, large: null, color: null },
   siteUrl: `https://anilist.co/anime/${id}`,
   format: 'TV',
   status: 'FINISHED',
@@ -43,7 +44,12 @@ const entry = (progress: number, userId = 'u1') =>
     userId,
     status: 'ASSISTINDO',
     progress,
-    anime: { titleEnglish: 'Solo Leveling', titleRomaji: 'x', siteUrl: 'https://a.co/1', totalEpisodes: 13 },
+    anime: {
+      titleEnglish: 'Solo Leveling',
+      titleRomaji: 'x',
+      siteUrl: 'https://a.co/1',
+      totalEpisodes: 13,
+    },
   }) as unknown as ListEntryWithAnime;
 
 type Handler = (ctx: unknown) => Promise<void>;
@@ -83,9 +89,15 @@ describe('compartilhamento de episódio — busca', () => {
     await handleAnimeInput(ctx as unknown as BotContext, input);
 
     expect(core.searchAnimeForSeason).toHaveBeenCalledWith('Solo Leveling', 2, 3);
-    const [text, options] = ctx.reply.mock.calls[0] as [string, { reply_markup: never }];
-    expect(text).toContain('T2 ep 5');
-    expect(callbackData(options.reply_markup)).toEqual(['adde:10:5', 'adde:11:5']);
+    // Introdução + um card por opção, cada um com o seu botão que carrega o episódio.
+    expect(ctx.reply).toHaveBeenCalledTimes(3);
+    expect(ctx.reply.mock.calls[0]?.[0]).toContain('T2 ep 5');
+    const cards = ctx.reply.mock.calls.slice(1) as [string, { reply_markup: never }][];
+    expect(cards.map(([, options]) => callbackData(options.reply_markup))).toEqual([
+      ['adde:10:5'],
+      ['adde:11:5'],
+    ]);
+    expect(cards[0]?.[0]).toContain('1. <b>');
   });
 
   it('sem resultados responde "Nenhum anime encontrado"', async () => {
@@ -110,7 +122,10 @@ describe('callbacks adde: / pgs: / pgn:', () => {
     expect(ctx.reply).toHaveBeenCalledTimes(2);
     const [text, options] = ctx.reply.mock.calls[1] as [string, { reply_markup: never }];
     expect(text).toContain('episódio 5');
-    expect(callbackData(options.reply_markup)).toEqual([`pgs:${'c'.repeat(25)}:5`, `pgn:${'c'.repeat(25)}`]);
+    expect(callbackData(options.reply_markup)).toEqual([
+      `pgs:${'c'.repeat(25)}:5`,
+      `pgn:${'c'.repeat(25)}`,
+    ]);
   });
 
   it('não sugere se o progresso já é o episódio do link', async () => {
@@ -142,7 +157,10 @@ describe('callbacks adde: / pgs: / pgn:', () => {
     core.getEntryById.mockResolvedValue(entry(0, 'dono'));
     const intruder = fakeCtx({ match: ['x', 'e1'] });
     await handlers().get('^pgn:(.+)$')?.(intruder);
-    expect(intruder.answerCallbackQuery).toHaveBeenCalledWith({ text: NOT_OWNER_TEXT, show_alert: true });
+    expect(intruder.answerCallbackQuery).toHaveBeenCalledWith({
+      text: NOT_OWNER_TEXT,
+      show_alert: true,
+    });
     expect(intruder.editMessageText).not.toHaveBeenCalled();
 
     const owner = fakeCtx({ user: { id: 'dono' }, match: ['x', 'e1'] });
@@ -154,7 +172,7 @@ describe('callbacks adde: / pgs: / pgn:', () => {
 describe('callback_data e ajuda', () => {
   it('cabe em 64 bytes mesmo com id longo e episódio grande', () => {
     const kbs = [
-      searchResultsKeyboard([media(999999999)], 9999),
+      addResultKeyboard(media(999999999), 9999),
       saveProgressKeyboard('c'.repeat(25), 9999),
     ];
     for (const kb of kbs) {

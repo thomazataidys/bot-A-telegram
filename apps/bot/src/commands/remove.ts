@@ -9,6 +9,7 @@ import {
 } from '@animebot/core';
 import type { Bot } from 'grammy';
 import type { BotContext } from '../context.js';
+import { editCard } from '../cards.js';
 import { pickEntryKeyboard, removeConfirmKeyboard } from '../keyboards/entry.js';
 import { HTML_OPTIONS, NOT_OWNER_TEXT } from '../messages.js';
 
@@ -50,12 +51,9 @@ export function registerRemove(bot: Bot<BotContext>): void {
     try {
       const removed = await removeEntry(ctx.match[1] as string, ctx.user.id);
       await ctx.answerCallbackQuery({ text: 'Removido.' });
-      await ctx.editMessageText(
+      await editCard(
+        ctx,
         `🗑 <b>${escapeHtml(displayTitle(removed.anime))}</b> foi removido da sua lista.`,
-        {
-          ...HTML_OPTIONS,
-          reply_markup: undefined,
-        },
       );
     } catch (error) {
       if (error instanceof UnauthorizedEntryAccessError) {
@@ -81,7 +79,7 @@ export function registerRemove(bot: Bot<BotContext>): void {
       if (!(error instanceof EntryNotFoundError)) throw error;
     }
     await ctx.answerCallbackQuery({ text: 'Cancelado.' });
-    await ctx.editMessageText('Remoção cancelada.', { reply_markup: undefined });
+    await editCard(ctx, 'Remoção cancelada.');
   });
 }
 

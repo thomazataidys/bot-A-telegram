@@ -6,8 +6,8 @@ import {
 } from '@animebot/core';
 import type { Bot } from 'grammy';
 import type { BotContext } from '../context.js';
-import { entryCard, pickEpisodeEntryKeyboard } from '../keyboards/entry.js';
-import { HTML_OPTIONS } from '../messages.js';
+import { sendAnimeCard } from '../cards.js';
+import { entryAnimeCard, pickEpisodeEntryKeyboard } from '../keyboards/entry.js';
 
 const MAX_CANDIDATES = 8;
 const USAGE = 'Use /vi <nome do anime> <episódio>. Exemplo: /vi solo leveling 5';
@@ -23,10 +23,13 @@ async function replyWithEntry(
   ctx: BotContext,
   result: Awaited<ReturnType<typeof setProgress>>,
 ): Promise<void> {
-  const { text, reply_markup } = entryCard(result.entry, {
-    offerComplete: result.reachedTotalEpisodes,
-  });
-  await ctx.reply(`📺 Progresso atualizado:\n\n${text}`, { ...HTML_OPTIONS, reply_markup });
+  await sendAnimeCard(
+    ctx,
+    entryAnimeCard(result.entry, {
+      offerComplete: result.reachedTotalEpisodes,
+      prefix: '📺 Progresso atualizado:',
+    }),
+  );
 }
 
 export function registerVi(bot: Bot<BotContext>): void {

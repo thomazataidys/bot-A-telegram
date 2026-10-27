@@ -7,6 +7,7 @@ import {
 } from '@animebot/core';
 import type { Bot } from 'grammy';
 import { addAndReply, handleAnimeInput } from '../add-flow.js';
+import { editCard } from '../cards.js';
 import type { BotContext } from '../context.js';
 import { NOT_OWNER_TEXT } from '../messages.js';
 
@@ -52,11 +53,13 @@ export function registerAdd(bot: Bot<BotContext>): void {
 
   bot.callbackQuery(/^pgs:([^:]+):(\d+)$/, async (ctx) => {
     try {
-      const { entry } = await setProgress(ctx.match[1] as string, Number(ctx.match[2]), ctx.user.id);
+      const { entry } = await setProgress(
+        ctx.match[1] as string,
+        Number(ctx.match[2]),
+        ctx.user.id,
+      );
       await ctx.answerCallbackQuery({ text: `Episódio ${entry.progress}` });
-      await ctx.editMessageText(`💾 Progresso salvo: episódio ${entry.progress}.`, {
-        reply_markup: undefined,
-      });
+      await editCard(ctx, `💾 Progresso salvo: episódio ${entry.progress}.`);
     } catch (error) {
       if (!(error instanceof InvalidEpisodeNumberError)) throw error;
       await ctx.answerCallbackQuery({ text: error.message, show_alert: true });
@@ -71,6 +74,6 @@ export function registerAdd(bot: Bot<BotContext>): void {
       return;
     }
     await ctx.answerCallbackQuery({ text: 'Ok, progresso mantido.' });
-    await ctx.editMessageText('Progresso mantido.', { reply_markup: undefined });
+    await editCard(ctx, 'Progresso mantido.');
   });
 }

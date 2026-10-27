@@ -61,9 +61,10 @@ describe('callback rmn: (cancelar remoção)', () => {
     await captureCancelHandler()(ctx);
 
     expect(ctx.answerCallbackQuery).toHaveBeenCalledWith({ text: 'Cancelado.' });
-    expect(ctx.editMessageText).toHaveBeenCalledWith('Remoção cancelada.', {
-      reply_markup: undefined,
-    });
+    expect(ctx.editMessageText).toHaveBeenCalledWith(
+      'Remoção cancelada.',
+      expect.objectContaining({ reply_markup: undefined }),
+    );
   });
 
   it('encerra o prompt se a entrada já foi removida', async () => {
@@ -72,9 +73,10 @@ describe('callback rmn: (cancelar remoção)', () => {
 
     await captureCancelHandler()(ctx);
 
-    expect(ctx.editMessageText).toHaveBeenCalledWith('Remoção cancelada.', {
-      reply_markup: undefined,
-    });
+    expect(ctx.editMessageText).toHaveBeenCalledWith(
+      'Remoção cancelada.',
+      expect.objectContaining({ reply_markup: undefined }),
+    );
   });
 });
 
