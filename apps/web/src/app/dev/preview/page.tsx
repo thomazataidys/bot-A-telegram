@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { PreviewClient } from './preview-client';
 
 export const metadata: Metadata = {
-  title: 'Preview de Componentes',
+  title: 'Prévia de Componentes',
 };
 
 export default function DevPreviewPage(): React.JSX.Element {

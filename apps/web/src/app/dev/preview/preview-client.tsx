@@ -673,7 +673,7 @@ export function PreviewClient(): React.JSX.Element {
             <Badge variant="outline">Dados Fictícios</Badge>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Preview dos Componentes do Painel
+            Prévia dos Componentes do Painel
           </h1>
           <p className="text-sm text-muted-foreground">
             Todos os componentes abaixo são puramente visuais, tipados conforme
@@ -686,11 +686,11 @@ export function PreviewClient(): React.JSX.Element {
           variant="outline"
           size="sm"
           onClick={() =>
-            toast.info('Notificação de exemplo disparada via Sonner!')
+            toast.info('Notificação de exemplo disparada com sucesso!')
           }
         >
           <Bell className="h-4 w-4" />
-          Testar Toast (Sonner)
+          Testar Notificação
         </Button>
       </div>
 
@@ -698,7 +698,7 @@ export function PreviewClient(): React.JSX.Element {
       <section className="space-y-4">
         <div>
           <h2 className="text-lg font-bold">
-            1. Dashboard (StatCard + UpcomingEpisodesList)
+            1. Painel Inicial (StatCard + UpcomingEpisodesList)
           </h2>
           <p className="text-xs text-muted-foreground">
             Indicadores principais e episódios das próximas 48 horas.
@@ -710,7 +710,7 @@ export function PreviewClient(): React.JSX.Element {
             title="Usuários Ativos"
             value={`${users.filter((u) => u.active).length} / ${users.length}`}
             subtitle="Membros com acesso liberado no bot"
-            badgeText="Online"
+            badgeText="Ativos"
             icon={Users}
           />
           <StatCard

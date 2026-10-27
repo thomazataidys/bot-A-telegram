@@ -344,7 +344,7 @@ export function UsersTable({
                             onChange={(e) => setEditUsername(e.target.value)}
                             placeholder="sem @"
                             className="h-8 max-w-[160px]"
-                            aria-label="Editar username"
+                            aria-label="Editar nome de usuário"
                           />
                         ) : user.username ? (
                           <span className="font-mono text-xs text-foreground">

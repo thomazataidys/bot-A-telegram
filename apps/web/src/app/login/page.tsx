@@ -30,7 +30,7 @@ export default function LoginPage(): React.JSX.Element {
             </div>
             <div className="space-y-1">
               <CardTitle className="text-2xl font-bold">
-                AnimeBot Admin
+                Painel AnimeBot
               </CardTitle>
               <CardDescription>
                 Insira a senha de administrador para gerenciar usuários, listas,
