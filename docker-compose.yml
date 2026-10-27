@@ -1,0 +1,83 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-animebot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-animebot}
+      POSTGRES_DB: ${POSTGRES_DB:-animebot}
+      TZ: ${TZ:-America/Fortaleza}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER:-animebot}" -d "$${POSTGRES_DB:-animebot}"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    logging: *default-logging
+
+  migrate:
+    image: animebot-migrate:local
+    build:
+      context: .
+      dockerfile: apps/bot/Dockerfile
+    restart: 'no'
+    working_dir: /app/packages/db
+    command: ['sh', '-c', 'prisma migrate deploy && prisma db seed']
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-America/Fortaleza}
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+
+  bot:
+    image: animebot-bot:local
+    build:
+      context: .
+      dockerfile: apps/bot/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-America/Fortaleza}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  web:
+    image: animebot-web:local
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      TZ: ${TZ:-America/Fortaleza}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+volumes:
+  pgdata:
+    name: pgdata
