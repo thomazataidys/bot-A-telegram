@@ -34,6 +34,8 @@ export interface SettingsFormProps {
   onSaveSettings?: (settings: AppSettings) => Promise<void> | void;
   onSendTestMessage?: (groupChatId: string) => Promise<void> | void;
   onSyncNow?: () => Promise<SyncResult | void> | void;
+  syncDisabled?: boolean;
+  syncDisabledTooltip?: string;
 }
 
 export function SettingsForm({
@@ -41,6 +43,8 @@ export function SettingsForm({
   onSaveSettings,
   onSendTestMessage,
   onSyncNow,
+  syncDisabled = false,
+  syncDisabledTooltip = 'Disponível em breve',
 }: SettingsFormProps): React.JSX.Element {
   const [groupChatId, setGroupChatId] = React.useState(
     initialSettings.groupChatId ?? '',
@@ -321,24 +325,36 @@ export function SettingsForm({
               )}
             </Button>
 
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => void handleSyncNow()}
-              disabled={isSyncing || isSendingTest}
+            <span
+              title={
+                syncDisabled || !onSyncNow ? syncDisabledTooltip : undefined
+              }
+              className="inline-flex"
             >
-              {isSyncing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4" />
-                  Sincronizar agora
-                </>
-              )}
-            </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void handleSyncNow()}
+                disabled={
+                  syncDisabled || !onSyncNow || isSyncing || isSendingTest
+                }
+                title={
+                  syncDisabled || !onSyncNow ? syncDisabledTooltip : undefined
+                }
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sincronizando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Sincronizar agora
+                  </>
+                )}
+              </Button>
+            </span>
           </div>
         </div>
       </CardContent>

@@ -1,25 +1,40 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
-import { Settings } from 'lucide-react';
-import { ComingSoonCard } from '@/components/coming-soon-card';
+import { getSettings } from '@animebot/core';
+import {
+  saveSettingsAction,
+  sendTestGroupMessageAction,
+} from './actions';
+import { SettingsForm } from '@/components/settings-form';
 
 export const metadata: Metadata = {
   title: 'Configurações',
 };
 
-export default function ConfiguracoesPage(): React.JSX.Element {
+export const dynamic = 'force-dynamic';
+
+export default async function ConfiguracoesPage(): Promise<React.JSX.Element> {
+  const settings = await getSettings();
+
   return (
-    <ComingSoonCard
-      title="Configurações"
-      subtitle="Ajuste os parâmetros do grupo do Telegram, atraso das notificações, fuso horário e sincronização."
-      description="Esta página consumirá getSettings(), updateSettings() e syncTrackedAnimes() de @animebot/core."
-      icon={Settings}
-      features={[
-        'Edição de groupChatId, notificationDelayMinutes, syncIntervalMinutes, timezone e autoApproveUsers',
-        'Botão para enviar mensagem de teste diretamente no grupo do Telegram',
-        'Botão para disparar sincronização imediata com a AniList (Sincronizar agora)',
-        'Validação com Zod e feedback visual de sucesso ou erro',
-      ]}
-    />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          Configurações
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Gerencie o ID do grupo do Telegram, o atraso das notificações, o fuso
+          horário e a aprovação automática de novos membros.
+        </p>
+      </div>
+
+      <SettingsForm
+        initialSettings={settings}
+        onSaveSettings={saveSettingsAction}
+        onSendTestMessage={sendTestGroupMessageAction}
+        syncDisabled
+        syncDisabledTooltip="Disponível em breve"
+      />
+    </div>
   );
 }
