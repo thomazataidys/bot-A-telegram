@@ -70,6 +70,16 @@ export function registerRemove(bot: Bot<BotContext>): void {
   });
 
   bot.callbackQuery(/^rmn:(.+)$/, async (ctx) => {
+    try {
+      const entry = await getEntryById(ctx.match[1] as string);
+      if (entry.userId !== ctx.user.id) {
+        await ctx.answerCallbackQuery({ text: NOT_OWNER_TEXT, show_alert: true });
+        return;
+      }
+    } catch (error) {
+      // Entrada já removida: só encerra o prompt.
+      if (!(error instanceof EntryNotFoundError)) throw error;
+    }
     await ctx.answerCallbackQuery({ text: 'Cancelado.' });
     await ctx.editMessageText('Remoção cancelada.', { reply_markup: undefined });
   });
