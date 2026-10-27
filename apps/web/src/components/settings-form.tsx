@@ -3,6 +3,8 @@
 import * as React from 'react';
 import {
   AlertCircle,
+  Bell,
+  Clock,
   Loader2,
   RefreshCw,
   Save,
@@ -13,6 +15,7 @@ import { toast } from 'sonner';
 import {
   settingsFormSchema,
   type AppSettings,
+  type RuntimeStatus,
   type SyncResult,
 } from '@/types/contracts';
 import { Button } from '@/components/ui/button';
@@ -31,6 +34,7 @@ export { settingsFormSchema };
 
 export interface SettingsFormProps {
   initialSettings: AppSettings;
+  runtimeStatus?: RuntimeStatus;
   onSaveSettings?: (settings: AppSettings) => Promise<void> | void;
   onSendTestMessage?: (groupChatId: string) => Promise<void> | void;
   onSyncNow?: () => Promise<SyncResult | void> | void;
@@ -38,8 +42,35 @@ export interface SettingsFormProps {
   syncDisabledTooltip?: string;
 }
 
+function formatStatusTimestamp(
+  value: Date | string | null | undefined,
+  timezone: string,
+): string {
+  if (!value) {
+    return 'Ainda não registrado';
+  }
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) {
+    return 'Ainda não registrado';
+  }
+  try {
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: timezone || 'America/Fortaleza',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }).format(date);
+  } catch {
+    return date.toLocaleString('pt-BR');
+  }
+}
+
 export function SettingsForm({
   initialSettings,
+  runtimeStatus,
   onSaveSettings,
   onSendTestMessage,
   onSyncNow,
@@ -65,6 +96,15 @@ export function SettingsForm({
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSendingTest, setIsSendingTest] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
+  const [lastSyncAt, setLastSyncAt] = React.useState<Date | string | null>(
+    runtimeStatus?.lastSyncAt ?? null,
+  );
+
+  React.useEffect(() => {
+    if (runtimeStatus?.lastSyncAt !== undefined) {
+      setLastSyncAt(runtimeStatus.lastSyncAt);
+    }
+  }, [runtimeStatus?.lastSyncAt]);
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
@@ -137,10 +177,16 @@ export function SettingsForm({
     try {
       const result = await onSyncNow?.();
       if (result && typeof result === 'object') {
+        setLastSyncAt(result.finishedAt);
         toast.success(
-          `Sincronização concluída: ${result.syncedAnimesCount} animes e ${result.upsertedEpisodesCount} episódios atualizados.`,
+          `Sincronização concluída: ${result.syncedAnimesCount} ${
+            result.syncedAnimesCount === 1 ? 'anime' : 'animes'
+          } e ${result.upsertedEpisodesCount} ${
+            result.upsertedEpisodesCount === 1 ? 'episódio atualizado' : 'episódios atualizados'
+          }.`,
         );
       } else {
+        setLastSyncAt(new Date().toISOString());
         toast.success('Sincronização com a AniList concluída!');
       }
     } catch (err) {
@@ -295,6 +341,40 @@ export function SettingsForm({
         </form>
 
         <Separator />
+
+        {/* Status de Execução (Última Sincronização e Última Notificação) */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+              <Clock className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-muted-foreground">
+                Última sincronização com a AniList
+              </p>
+              <p className="text-sm font-semibold truncate">
+                {formatStatusTimestamp(lastSyncAt, timezone)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+              <Bell className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-muted-foreground">
+                Última notificação enviada no grupo
+              </p>
+              <p className="text-sm font-semibold truncate">
+                {formatStatusTimestamp(
+                  runtimeStatus?.lastNotificationAt,
+                  timezone,
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>

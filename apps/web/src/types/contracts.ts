@@ -24,6 +24,8 @@ import type {
   ListEntryWithAnime as CoreListEntryWithAnime,
   PartialAppSettingsInput,
   ProgressUpdateResult,
+  RuntimeStatus as CoreRuntimeStatus,
+  SyncResult as CoreSyncResult,
   UpdateUserInput,
   UpsertTelegramUserInput,
   UpsertTelegramUserResult,
@@ -54,6 +56,8 @@ export type {
   CoreListEntryWithAnime,
   PartialAppSettingsInput,
   ProgressUpdateResult,
+  CoreRuntimeStatus,
+  CoreSyncResult,
   UpdateUserInput,
   UpsertTelegramUserInput,
   UpsertTelegramUserResult,
@@ -164,11 +168,16 @@ export interface GetScheduleParams {
   now?: Date;
 }
 
-export interface SyncResult {
-  syncedAnimesCount: number;
-  upsertedEpisodesCount: number;
-  startedAt: Date | string;
-  finishedAt: Date | string;
+export interface SyncResult
+  extends Omit<CoreSyncResult, 'startedAt' | 'finishedAt'> {
+  startedAt: CoreSyncResult['startedAt'] | string;
+  finishedAt: CoreSyncResult['finishedAt'] | string;
+}
+
+export interface RuntimeStatus
+  extends Omit<CoreRuntimeStatus, 'lastSyncAt' | 'lastNotificationAt'> {
+  lastSyncAt: CoreRuntimeStatus['lastSyncAt'] | string;
+  lastNotificationAt: CoreRuntimeStatus['lastNotificationAt'] | string;
 }
 
 export interface DashboardStats {

@@ -1,8 +1,17 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getSettings, updateSettings } from '@animebot/core';
-import { settingsFormSchema, type AppSettings } from '@/types/contracts';
+import {
+  getSettings,
+  SyncAlreadyRunningError,
+  syncTrackedAnimes,
+  updateSettings,
+} from '@animebot/core';
+import {
+  settingsFormSchema,
+  type AppSettings,
+  type SyncResult,
+} from '@/types/contracts';
 
 export async function saveSettingsAction(input: AppSettings): Promise<void> {
   const parsed = settingsFormSchema.safeParse({
@@ -88,5 +97,36 @@ export async function sendTestGroupMessageAction(
     throw new Error(
       `Falha ao enviar mensagem pelo Telegram (${description}). Verifique se o bot está no grupo.`,
     );
+  }
+}
+
+export async function syncNowAction(): Promise<SyncResult> {
+  try {
+    const result = await syncTrackedAnimes();
+    revalidatePath('/configuracoes');
+    revalidatePath('/animes');
+    revalidatePath('/agenda');
+    revalidatePath('/');
+    return {
+      syncedAnimesCount: result.syncedAnimesCount,
+      upsertedEpisodesCount: result.upsertedEpisodesCount,
+      startedAt: result.startedAt.toISOString(),
+      finishedAt: result.finishedAt.toISOString(),
+    };
+  } catch (err) {
+    if (
+      err instanceof SyncAlreadyRunningError ||
+      (err instanceof Error && err.name === 'SyncAlreadyRunningError')
+    ) {
+      throw new Error(
+        'Já existe uma sincronização em andamento. Aguarde alguns instantes e tente novamente.',
+        { cause: err },
+      );
+    }
+    throw err instanceof Error
+      ? err
+      : new Error('Não foi possível sincronizar os animes com a AniList.', {
+          cause: err,
+        });
   }
 }

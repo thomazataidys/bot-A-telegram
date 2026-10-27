@@ -1,9 +1,10 @@
 import * as React from 'react';
 import type { Metadata } from 'next';
-import { getSettings } from '@animebot/core';
+import { getRuntimeStatus, getSettings } from '@animebot/core';
 import {
   saveSettingsAction,
   sendTestGroupMessageAction,
+  syncNowAction,
 } from './actions';
 import { SettingsForm } from '@/components/settings-form';
 
@@ -14,7 +15,19 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function ConfiguracoesPage(): Promise<React.JSX.Element> {
-  const settings = await getSettings();
+  const [settings, rawRuntimeStatus] = await Promise.all([
+    getSettings(),
+    getRuntimeStatus(),
+  ]);
+
+  const runtimeStatus = {
+    lastSyncAt: rawRuntimeStatus.lastSyncAt
+      ? rawRuntimeStatus.lastSyncAt.toISOString()
+      : null,
+    lastNotificationAt: rawRuntimeStatus.lastNotificationAt
+      ? rawRuntimeStatus.lastNotificationAt.toISOString()
+      : null,
+  };
 
   return (
     <div className="space-y-6">
@@ -30,10 +43,10 @@ export default async function ConfiguracoesPage(): Promise<React.JSX.Element> {
 
       <SettingsForm
         initialSettings={settings}
+        runtimeStatus={runtimeStatus}
         onSaveSettings={saveSettingsAction}
         onSendTestMessage={sendTestGroupMessageAction}
-        syncDisabled
-        syncDisabledTooltip="Disponível em breve"
+        onSyncNow={syncNowAction}
       />
     </div>
   );
