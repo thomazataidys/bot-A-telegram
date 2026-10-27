@@ -96,13 +96,20 @@ describe('addAnimeByAnilistId', () => {
     expect(entry.anime.nextEpisode).toBeNull();
   });
 
-  it('não sincroniza de novo se o anime já está no banco', async () => {
-    db.prisma.anime.findUnique.mockResolvedValue(solo);
+  it('não sincroniza de novo se o anime já está no banco e foi sincronizado', async () => {
+    db.prisma.anime.findUnique.mockResolvedValue({ ...solo, lastSyncedAt: new Date(0) });
     await addAnimeByAnilistId(100, { userId: 'u1', status: 'QUERO_VER' });
     expect(sync.syncSingleAnime).not.toHaveBeenCalled();
     expect(db.prisma.listEntry.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'QUERO_VER' }) }),
     );
+  });
+
+  it('sincroniza quando o anime existe mas nunca foi sincronizado (lastSyncedAt nulo)', async () => {
+    db.prisma.anime.findUnique.mockResolvedValue(solo);
+    await addAnimeByAnilistId(100, { userId: 'u1' });
+    expect(sync.syncSingleAnime).toHaveBeenCalledWith(100);
+    expect(db.prisma.listEntry.create).toHaveBeenCalled();
   });
 
   it('lança AnimeAlreadyInListError com a entrada existente', async () => {

@@ -96,7 +96,9 @@ async function addExistingOrSyncedAnime(
   const user = await prisma.user.findUnique({ where: { id: options.userId } });
   if (!user) throw new UserNotFoundError(options.userId);
 
-  const anime = existing ?? (await syncSingleAnime(anilistId));
+  // Anime órfão (nunca sincronizado) não tem AiringEpisode: sincroniza antes de adicionar.
+  const anime =
+    existing && existing.lastSyncedAt !== null ? existing : await syncSingleAnime(anilistId);
 
   const already = await findEntry(user.id, anime.id);
   if (already) throw new AnimeAlreadyInListError(already);
