@@ -9,6 +9,7 @@ import { registerHelp } from './commands/help.js';
 import { registerList } from './commands/list.js';
 import { registerRemove } from './commands/remove.js';
 import { registerSearch } from './commands/search.js';
+import { registerSchedule } from './commands/schedule.js';
 import { registerStart } from './commands/start.js';
 import { registerVi } from './commands/vi.js';
 import type { BotContext } from './context.js';
@@ -23,6 +24,8 @@ export const BOT_COMMANDS = [
   { command: 'add', description: 'Adicionar um anime à sua lista' },
   { command: 'lista', description: 'Ver a sua lista (ou /lista @usuario)' },
   { command: 'global', description: 'Ver a lista global de todos os usuários' },
+  { command: 'semana', description: 'Episódios da semana (ou /semana todos)' },
+  { command: 'proxima', description: 'Episódios da próxima semana (ou /proxima todos)' },
   { command: 'vi', description: 'Registrar o episódio que você viu' },
   { command: 'remover', description: 'Remover um anime da sua lista' },
 ];
@@ -65,6 +68,7 @@ export function createBot(token: string): Bot<BotContext> {
   registerRemove(bot);
   registerVi(bot);
   registerGlobal(bot);
+  registerSchedule(bot);
   registerConfigGroup(bot);
   registerNotificationWatch(bot);
   // Depois do handler de "✏️ Definir ep" (registerEntryActions), que consome o número antes.
