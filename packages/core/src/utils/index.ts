@@ -1,1 +1,2 @@
-export * from './escape.js';
+export * from './html.js';
+export * from './title.js';
