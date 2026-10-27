@@ -155,3 +155,48 @@ describe('parseAddArgument', () => {
     expect(parseAddArgument('https://example.com/anime/1')).toBeNull();
   });
 });
+
+describe('parseMessageInput — compartilhamento de episódio da Crunchyroll', () => {
+  const SHARE =
+    'Check Out Solo Leveling S2 E5: Isso não é nada demais on Crunchyroll! https://www.crunchyroll.com/watch/GG1U2Q5V2/its-not-a-big-deal?utm_medium=android&utm_source=share';
+
+  it('extrai título, temporada e episódio, ignorando o slug e os utm_*', () => {
+    expect(parseMessageInput(SHARE)).toEqual({
+      type: 'crunchyroll-episode',
+      title: 'Solo Leveling',
+      season: 2,
+      episode: 5,
+      searchQuery: 'Solo Leveling',
+      rawUrl:
+        'https://www.crunchyroll.com/watch/GG1U2Q5V2/its-not-a-big-deal?utm_medium=android&utm_source=share',
+    });
+  });
+
+  it('funciona com /pt-br/, sem utm e pelo /add', () => {
+    const text = 'Check Out Frieren S1 E12: Título on Crunchyroll! https://www.crunchyroll.com/pt-br/watch/GABC123/x';
+    expect(parseMessageInput(text)).toMatchObject({ title: 'Frieren', season: 1, episode: 12 });
+    expect(parseAddArgument(SHARE)).toMatchObject({ type: 'crunchyroll-episode', episode: 5 });
+  });
+
+  it('sem S/E usa o que vem antes do primeiro ": " e aceita só o episódio', () => {
+    expect(
+      parseMessageInput('Check Out Dandadan: Primeiro contato on Crunchyroll! https://www.crunchyroll.com/watch/G1/a'),
+    ).toMatchObject({ title: 'Dandadan' });
+    expect(
+      parseMessageInput('Check Out Dandadan: Primeiro contato on Crunchyroll! https://www.crunchyroll.com/watch/G1/a'),
+    ).not.toHaveProperty('episode');
+    expect(
+      parseMessageInput('Check Out One Piece E1100: Algo on Crunchyroll! https://www.crunchyroll.com/watch/G1/a'),
+    ).toMatchObject({ title: 'One Piece', episode: 1100 });
+  });
+
+  it('mantém título com dois-pontos sem espaço (Re:Zero)', () => {
+    expect(
+      parseMessageInput('Check Out Re:Zero S3 E2: Ep on Crunchyroll! https://www.crunchyroll.com/watch/G1/a'),
+    ).toMatchObject({ title: 'Re:Zero', season: 3, episode: 2 });
+  });
+
+  it('só o link /watch, sem texto, continua não reconhecido', () => {
+    expect(parseMessageInput('https://www.crunchyroll.com/watch/GRDQPM1ZY/ep-1')).toBeNull();
+  });
+});

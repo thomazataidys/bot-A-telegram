@@ -8,6 +8,15 @@ export type ParsedAnimeInput =
       searchQuery: string;
       rawUrl: string;
     }
+  | {
+      type: 'crunchyroll-episode';
+      /** Título do anime extraído do texto do compartilhamento (o slug do link é o título do episódio). */
+      title: string;
+      season?: number;
+      episode?: number;
+      searchQuery: string;
+      rawUrl: string;
+    }
   | { type: 'plus_query'; searchQuery: string };
 
 const PROTOCOL = String.raw`(?:https?:\/\/)?(?:www\.)?`;
@@ -19,6 +28,12 @@ const MAL_RE = new RegExp(`${BOUNDARY}${PROTOCOL}myanimelist\\.net\\/anime\\/(\\
 // Idioma opcional: "pt-br", "en", "es-419"...
 const CRUNCHYROLL_RE = new RegExp(
   `${BOUNDARY}${PROTOCOL}crunchyroll\\.com\\/(?:[a-z]{2}(?:-[a-z0-9]{2,4})?\\/)?series\\/([a-z0-9]+)\\/([\\w%-]+)`,
+  'i',
+);
+
+// Episódio compartilhado pelo app: /watch/<ID>/<slug-do-episodio>, com ?utm_* opcional.
+const CRUNCHYROLL_WATCH_RE = new RegExp(
+  `${BOUNDARY}${PROTOCOL}crunchyroll\\.com\\/(?:[a-z]{2}(?:-[a-z0-9]{2,4})?\\/)?watch\\/([a-z0-9]+)(?:\\/([\\w%-]+))?(?:\\?\\S*)?`,
   'i',
 );
 
@@ -35,8 +50,51 @@ export function slugToSearchQuery(slug: string): string {
   return decoded.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * "Check Out Solo Leveling S2 E5: Título do ep on Crunchyroll! <url>" -> título, temporada e episódio.
+ * Sem "S<n> E<n>", o título é o que vem antes do primeiro ": ". Devolve null se não sobrar título.
+ */
+export function parseCrunchyrollShareText(
+  text: string,
+): { title: string; season?: number; episode?: number } | null {
+  const cleaned = text
+    .replace(/https?:\/\/\S+/gi, ' ')
+    .replace(/(?:www\.)?crunchyroll\.com\S*/gi, ' ')
+    .replace(/\s+on\s+Crunchyroll\s*!?/gi, ' ')
+    .replace(/^\s*Check\s+Out\s+/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const marker = /\bS(\d{1,2})\s*E(\d{1,4})\b/i.exec(cleaned);
+  if (marker) {
+    const title = cleaned.slice(0, marker.index).trim();
+    if (title === '') return null;
+    return { title, season: Number(marker[1]), episode: Number(marker[2]) };
+  }
+
+  const head = (cleaned.split(': ')[0] ?? '').trim();
+  const trailing = /^(.*?)\s+E(\d{1,4})$/i.exec(head);
+  const title = (trailing ? (trailing[1] ?? '') : head).trim();
+  if (title === '') return null;
+  return trailing ? { title, episode: Number(trailing[2]) } : { title };
+}
+
 function findLink(text: string): { index: number; input: ParsedAnimeInput } | null {
   const found: { index: number; input: ParsedAnimeInput }[] = [];
+
+  const watch = CRUNCHYROLL_WATCH_RE.exec(text);
+  const share = watch ? parseCrunchyrollShareText(text) : null;
+  if (watch && share) {
+    found.push({
+      index: watch.index,
+      input: {
+        type: 'crunchyroll-episode',
+        ...share,
+        searchQuery: share.title,
+        rawUrl: watch[0],
+      },
+    });
+  }
 
   const anilist = ANILIST_RE.exec(text);
   if (anilist) {

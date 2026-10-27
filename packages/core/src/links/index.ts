@@ -1,2 +1,2 @@
-export { parseAddArgument, parseMessageInput, slugToSearchQuery } from './parser.js';
+export { parseAddArgument, parseCrunchyrollShareText, parseMessageInput, slugToSearchQuery } from './parser.js';
 export type { ParsedAnimeInput } from './parser.js';
