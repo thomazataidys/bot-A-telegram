@@ -30,6 +30,8 @@ model Anime {
   titleEnglish  String?
   titleRomaji   String
   coverUrl      String?
+  bannerUrl     String?
+  coverColor    String?
   siteUrl       String
   format        String? // TV, ONA, MOVIE...
   status        String? // RELEASING, FINISHED, NOT_YET_RELEASED...
