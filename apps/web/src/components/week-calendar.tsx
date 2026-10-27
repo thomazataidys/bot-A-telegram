@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   CalendarDays,
   Clock,
@@ -28,23 +29,34 @@ export interface WeekCalendarProps {
   currentWeek: ScheduleResult;
   nextWeek?: ScheduleResult;
   users?: readonly UserWithStats[];
+  initialOffset?: 0 | 1;
   selectedOffset?: 0 | 1;
   onOffsetChange?: (offset: 0 | 1) => void;
+  initialUserId?: string;
   selectedUserId?: string;
   onUserChange?: (userId: string) => void;
+  syncUrlQuery?: boolean;
 }
 
 export function WeekCalendar({
   currentWeek,
   nextWeek,
   users = [],
+  initialOffset = 0,
   selectedOffset,
   onOffsetChange,
+  initialUserId = 'ALL',
   selectedUserId: controlledUserId,
   onUserChange,
+  syncUrlQuery = false,
 }: WeekCalendarProps): React.JSX.Element {
-  const [internalOffset, setInternalOffset] = React.useState<0 | 1>(0);
-  const [internalUserId, setInternalUserId] = React.useState<string>('ALL');
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const [internalOffset, setInternalOffset] =
+    React.useState<0 | 1>(initialOffset);
+  const [internalUserId, setInternalUserId] =
+    React.useState<string>(initialUserId);
 
   const activeOffset = selectedOffset ?? internalOffset;
   const activeUserId = controlledUserId ?? internalUserId;
@@ -52,26 +64,48 @@ export function WeekCalendar({
   const activeSchedule =
     activeOffset === 1 && nextWeek ? nextWeek : currentWeek;
 
+  function updateUrlParams(offset: 0 | 1, userId: string): void {
+    if (!syncUrlQuery) {
+      return;
+    }
+    const params = new URLSearchParams();
+    if (offset === 1) {
+      params.set('semana', 'proxima');
+    }
+    if (userId && userId !== 'ALL') {
+      params.set('usuario', userId);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
   function handleOffsetSelect(offset: 0 | 1): void {
     setInternalOffset(offset);
     onOffsetChange?.(offset);
+    updateUrlParams(offset, activeUserId);
   }
 
   function handleUserSelect(userId: string): void {
     setInternalUserId(userId);
     onUserChange?.(userId);
+    updateUrlParams(activeOffset, userId);
   }
 
   const filteredDays: readonly ScheduleDayGroup[] = React.useMemo(() => {
-    if (activeUserId === 'ALL') {
-      return activeSchedule.days;
-    }
     return activeSchedule.days
       .map((day) => ({
         ...day,
-        items: day.items.filter((item) =>
-          item.watchers.some((w) => w.user.id === activeUserId),
-        ),
+        items: day.items
+          .map((item) => ({
+            ...item,
+            watchers: item.watchers.filter((w) => w.user.active),
+          }))
+          .filter((item) => {
+            if (activeUserId === 'ALL') {
+              return true;
+            }
+            return item.watchers.some((w) => w.user.id === activeUserId);
+          }),
       }))
       .filter((day) => day.items.length > 0);
   }, [activeSchedule.days, activeUserId]);
@@ -247,8 +281,7 @@ export function WeekCalendar({
       )}
 
       <p className="text-xs text-muted-foreground text-center sm:text-right">
-        Horários estimados para o episódio sair legendado ({delayHoursLabel} da
-        exibição no Japão · Fuso {activeSchedule.timezone}).
+        Horários estimados para o legendado ({delayHoursLabel} do Japão).
       </p>
     </div>
   );
