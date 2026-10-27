@@ -15,5 +15,9 @@
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint src",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@animebot/db": "workspace:*",
+    "zod": "^4.6.7"
   }
 }

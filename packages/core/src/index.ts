@@ -1,3 +1,4 @@
+export * from './errors.js';
 export * from './anilist/index.js';
 export * from './links/index.js';
 export * from './services/index.js';
