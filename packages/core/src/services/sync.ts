@@ -24,7 +24,10 @@ async function applyMedia(
     malId: media.idMal,
     titleEnglish: media.title.english,
     titleRomaji: media.title.romaji,
-    coverUrl: media.coverImage.large,
+    // Imagens sempre atualizadas, inclusive de animes já cadastrados.
+    coverUrl: media.coverImage.extraLarge ?? media.coverImage.large,
+    bannerUrl: media.bannerImage,
+    coverColor: media.coverImage.color,
     siteUrl: media.siteUrl,
     format: media.format,
     status: media.status,

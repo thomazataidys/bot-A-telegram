@@ -16,8 +16,11 @@ export interface AniListMedia {
     romaji: string;
     english: string | null;
   };
+  bannerImage: string | null;
   coverImage: {
+    extraLarge: string | null;
     large: string | null;
+    color: string | null; // hex, ex.: "#e4a15d"
   };
   siteUrl: string;
   format: AniListFormat | null;

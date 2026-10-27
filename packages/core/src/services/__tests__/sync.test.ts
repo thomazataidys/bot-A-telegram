@@ -25,7 +25,12 @@ const media = {
   id: 100,
   idMal: 52299,
   title: { romaji: 'Ore dake Level Up na Ken', english: 'Solo Leveling' },
-  coverImage: { large: 'https://img/cover.png' },
+  bannerImage: 'https://img/banner.png',
+  coverImage: {
+    extraLarge: 'https://img/cover-xl.png',
+    large: 'https://img/cover.png',
+    color: '#e4a15d',
+  },
   siteUrl: 'https://anilist.co/anime/100',
   format: 'TV',
   status: 'RELEASING',
@@ -61,6 +66,43 @@ describe('syncSingleAnime', () => {
           titleRomaji: 'Ore dake Level Up na Ken',
           totalEpisodes: 12,
           lastSyncedAt: NOW,
+        }),
+      }),
+    );
+  });
+
+  it('grava capa (extraLarge), banner e cor tanto no create quanto no update', async () => {
+    await syncSingleAnime(100, NOW);
+
+    const images = {
+      coverUrl: 'https://img/cover-xl.png',
+      bannerUrl: 'https://img/banner.png',
+      coverColor: '#e4a15d',
+    };
+    expect(db.prisma.anime.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining(images),
+        update: expect.objectContaining(images),
+      }),
+    );
+  });
+
+  it('usa a capa large quando não há extraLarge e limpa o banner ausente', async () => {
+    anilist.getAiringSchedules.mockResolvedValue([
+      {
+        ...media,
+        bannerImage: null,
+        coverImage: { extraLarge: null, large: 'https://img/cover.png', color: null },
+      },
+    ]);
+    await syncSingleAnime(100, NOW);
+
+    expect(db.prisma.anime.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          coverUrl: 'https://img/cover.png',
+          bannerUrl: null,
+          coverColor: null,
         }),
       }),
     );

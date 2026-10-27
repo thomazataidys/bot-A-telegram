@@ -2,7 +2,8 @@ const MEDIA_FIELDS = `
   id
   idMal
   title { romaji english }
-  coverImage { large }
+  bannerImage
+  coverImage { extraLarge large color }
   siteUrl
   format
   status

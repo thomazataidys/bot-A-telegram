@@ -14,7 +14,12 @@ const rawMedia = (id: number, overrides: Record<string, unknown> = {}) => ({
   id,
   idMal: id + 1000,
   title: { romaji: `Romaji ${id}`, english: id % 2 === 0 ? `English ${id}` : null },
-  coverImage: { large: `https://img/${id}.jpg` },
+  bannerImage: `https://img/${id}-banner.jpg`,
+  coverImage: {
+    extraLarge: `https://img/${id}-xl.jpg`,
+    large: `https://img/${id}.jpg`,
+    color: '#e4a15d',
+  },
   siteUrl: `https://anilist.co/anime/${id}`,
   format: 'TV',
   status: 'RELEASING',
@@ -65,7 +70,12 @@ describe('searchAnime', () => {
       id: 1,
       idMal: 1001,
       title: { romaji: 'Romaji 1', english: null },
-      coverImage: { large: 'https://img/1.jpg' },
+      bannerImage: 'https://img/1-banner.jpg',
+      coverImage: {
+        extraLarge: 'https://img/1-xl.jpg',
+        large: 'https://img/1.jpg',
+        color: '#e4a15d',
+      },
       nextAiringEpisode: { episode: 5, airingAt: NOW + 3600 },
     });
     expect(result[1]).toMatchObject({ title: { english: 'English 2' }, idMal: null, format: null });
@@ -83,14 +93,22 @@ describe('searchAnime', () => {
       json({
         data: {
           Page: {
-            media: [rawMedia(3, { coverImage: null, episodes: null, nextAiringEpisode: null })],
+            media: [
+              rawMedia(3, {
+                bannerImage: null,
+                coverImage: null,
+                episodes: null,
+                nextAiringEpisode: null,
+              }),
+            ],
           },
         },
       }),
     );
     const [media] = await searchAnime('x');
     expect(media).toMatchObject({
-      coverImage: { large: null },
+      bannerImage: null,
+      coverImage: { extraLarge: null, large: null, color: null },
       episodes: null,
       nextAiringEpisode: null,
     });
@@ -107,6 +125,8 @@ describe('getAnimeById / getAnimeByMalId', () => {
     expect(await getAnimeByMalId(1007)).toMatchObject({ id: 7, idMal: 1007 });
     expect(lastBody().variables).toEqual({ idMal: 1007 });
     expect(lastBody().query).toContain('idMal: $idMal');
+    expect(lastBody().query).toContain('bannerImage');
+    expect(lastBody().query).toContain('coverImage { extraLarge large color }');
   });
 
   it('retorna null quando a API responde HTTP 404', async () => {

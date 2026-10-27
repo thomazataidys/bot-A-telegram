@@ -19,10 +19,22 @@ export const mediaSchema = z.object({
       .nullish()
       .transform((v) => v ?? null),
   }),
-  coverImage: z
-    .object({ large: z.string().nullish() })
+  bannerImage: z
+    .string()
     .nullish()
-    .transform((v) => ({ large: v?.large ?? null })),
+    .transform((v) => v ?? null),
+  coverImage: z
+    .object({
+      extraLarge: z.string().nullish(),
+      large: z.string().nullish(),
+      color: z.string().nullish(),
+    })
+    .nullish()
+    .transform((v) => ({
+      extraLarge: v?.extraLarge ?? null,
+      large: v?.large ?? null,
+      color: v?.color ?? null,
+    })),
   siteUrl: z.string(),
   format: z
     .string()
