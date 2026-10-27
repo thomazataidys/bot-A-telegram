@@ -3,6 +3,7 @@ import {
   getAnimeDisplayTitle,
   settingsFormSchema,
 } from '../../types/contracts';
+import { serializeUserWithStats } from '../serialize';
 
 describe('contracts & settings schema', () => {
   it('prefers titleEnglish when available and falls back to titleRomaji', () => {
@@ -39,5 +40,23 @@ describe('contracts & settings schema', () => {
       autoApproveUsers: true,
     });
     expect(invalidChatId.success).toBe(false);
+  });
+
+  it('serializes BigInt telegramId to string for Client Components', () => {
+    const now = new Date();
+    const serialized = serializeUserWithStats({
+      id: 'u1',
+      telegramId: 9876543210n,
+      username: 'thomaz',
+      name: 'Thomaz',
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+      entriesCount: 2,
+      registrationState: 'ACTIVE',
+    });
+
+    expect(serialized.telegramId).toBe('9876543210');
+    expect(() => JSON.stringify(serialized)).not.toThrow();
   });
 });

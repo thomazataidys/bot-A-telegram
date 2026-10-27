@@ -1,142 +1,97 @@
 import { z } from 'zod';
+import type {
+  AiringEpisode as DbAiringEpisode,
+  Anime as DbAnime,
+  ListEntry as DbListEntry,
+  ListStatus,
+  Setting,
+  SettingKey,
+  User as DbUser,
+} from '@animebot/db';
+import type {
+  AddAnimeOptions,
+  AniListAiringMedia,
+  AniListAiringNode,
+  AniListFormat,
+  AniListMedia,
+  AniListStatus,
+  AppSettings,
+  CreatePanelUserInput,
+  GlobalAnimeItem as CoreGlobalAnimeItem,
+  GlobalAnimeWatcher as CoreGlobalAnimeWatcher,
+  GlobalListFilter,
+  GroupedUserList as CoreGroupedUserList,
+  ListEntryWithAnime as CoreListEntryWithAnime,
+  PartialAppSettingsInput,
+  ProgressUpdateResult,
+  UpdateUserInput,
+  UpsertTelegramUserInput,
+  UpsertTelegramUserResult,
+  UserRegistrationState,
+  UserWithStats as CoreUserWithStats,
+} from '@animebot/core';
+
+export type {
+  ListStatus,
+  Setting,
+  SettingKey,
+  DbUser,
+  DbAnime,
+  DbListEntry,
+  DbAiringEpisode,
+  AddAnimeOptions,
+  AniListAiringMedia,
+  AniListAiringNode,
+  AniListFormat,
+  AniListMedia,
+  AniListStatus,
+  AppSettings,
+  CreatePanelUserInput,
+  CoreGlobalAnimeItem,
+  CoreGlobalAnimeWatcher,
+  GlobalListFilter,
+  CoreGroupedUserList,
+  CoreListEntryWithAnime,
+  PartialAppSettingsInput,
+  ProgressUpdateResult,
+  UpdateUserInput,
+  UpsertTelegramUserInput,
+  UpsertTelegramUserResult,
+  UserRegistrationState,
+  CoreUserWithStats,
+};
 
 /**
- * Tipos locais espelhando os contratos de @animebot/db e @animebot/core (docs/CONTRATOS.md).
- * Na etapa de integração com o backend, podem ser re-exportados diretamente de @animebot/core e @animebot/db.
+ * Versões serializáveis para componentes client (suportam tanto Date/bigint do core
+ * quanto string após serialização RSC -> Client Component).
  */
-
-export type ListStatus = 'ASSISTINDO' | 'QUERO_VER' | 'COMPLETO';
-
-export type SettingKey =
-  | 'groupChatId'
-  | 'notificationDelayMinutes'
-  | 'syncIntervalMinutes'
-  | 'timezone'
-  | 'autoApproveUsers';
-
-export interface User {
-  id: string;
-  telegramId: bigint | string | null;
-  username: string | null;
-  name: string;
-  active: boolean;
-  createdAt: Date | string;
-  updatedAt: Date | string;
+export interface User
+  extends Omit<DbUser, 'telegramId' | 'createdAt' | 'updatedAt'> {
+  telegramId: DbUser['telegramId'] | string;
+  createdAt: DbUser['createdAt'] | string;
+  updatedAt: DbUser['updatedAt'] | string;
 }
 
-export interface Anime {
-  id: string;
-  anilistId: number;
-  malId: number | null;
-  titleEnglish: string | null;
-  titleRomaji: string;
-  coverUrl: string | null;
-  siteUrl: string;
-  format: string | null;
-  status: string | null;
-  totalEpisodes: number | null;
-  lastSyncedAt: Date | string | null;
+export interface Anime extends Omit<DbAnime, 'lastSyncedAt'> {
+  lastSyncedAt: DbAnime['lastSyncedAt'] | string;
 }
 
-export interface ListEntry {
-  id: string;
-  userId: string;
-  animeId: string;
-  status: ListStatus;
-  progress: number;
-  addedAt: Date | string;
-  updatedAt: Date | string;
+export interface ListEntry extends Omit<DbListEntry, 'addedAt' | 'updatedAt'> {
+  addedAt: DbListEntry['addedAt'] | string;
+  updatedAt: DbListEntry['updatedAt'] | string;
 }
 
-export interface AiringEpisode {
-  id: string;
-  animeId: string;
-  episode: number;
-  airingAt: Date | string;
-  notifiedAt: Date | string | null;
+export interface AiringEpisode
+  extends Omit<DbAiringEpisode, 'airingAt' | 'notifiedAt'> {
+  airingAt: DbAiringEpisode['airingAt'] | string;
+  notifiedAt: DbAiringEpisode['notifiedAt'] | string;
 }
 
-export interface Setting {
-  key: string;
-  value: string;
-}
-
-export type AniListFormat =
-  | 'TV'
-  | 'TV_SHORT'
-  | 'MOVIE'
-  | 'SPECIAL'
-  | 'OVA'
-  | 'ONA'
-  | 'MUSIC'
-  | string;
-
-export type AniListStatus =
-  | 'FINISHED'
-  | 'RELEASING'
-  | 'NOT_YET_RELEASED'
-  | 'CANCELLED'
-  | 'HIATUS'
-  | string;
-
-export interface AniListAiringNode {
-  episode: number;
-  airingAt: number;
-}
-
-export interface AniListMedia {
-  id: number;
-  idMal: number | null;
-  title: {
-    romaji: string;
-    english: string | null;
-  };
-  coverImage: {
-    large: string | null;
-  };
-  siteUrl: string;
-  format: AniListFormat | null;
-  status: AniListStatus | null;
-  episodes: number | null;
-  nextAiringEpisode: AniListAiringNode | null;
-}
-
-export interface AniListAiringMedia extends AniListMedia {
-  airingSchedule: {
-    nodes: AniListAiringNode[];
-  };
-}
-
-export interface AppSettings {
-  groupChatId: string | null;
-  notificationDelayMinutes: number;
-  syncIntervalMinutes: number;
-  timezone: string;
-  autoApproveUsers: boolean;
-}
-
-export type PartialAppSettingsInput = Partial<AppSettings>;
-
-export type UserRegistrationState =
-  | 'ACTIVE'
-  | 'PENDING_APPROVAL'
-  | 'NEVER_STARTED_BOT';
-
-export interface UserWithStats extends User {
-  entriesCount: number;
-  registrationState: UserRegistrationState;
-}
-
-export interface CreatePanelUserInput {
-  name: string;
-  username?: string | null;
-  active?: boolean;
-}
-
-export interface UpdateUserInput {
-  name?: string;
-  username?: string | null;
-  active?: boolean;
+export interface UserWithStats
+  extends Omit<CoreUserWithStats, 'telegramId' | 'createdAt' | 'updatedAt'> {
+  telegramId: CoreUserWithStats['telegramId'] | string;
+  createdAt: CoreUserWithStats['createdAt'] | string;
+  updatedAt: CoreUserWithStats['updatedAt'] | string;
 }
 
 export interface ListEntryWithAnime extends ListEntry {
@@ -153,11 +108,9 @@ export interface GroupedUserList {
   totalCount: number;
 }
 
-export interface GlobalAnimeWatcher {
+export interface GlobalAnimeWatcher
+  extends Omit<CoreGlobalAnimeWatcher, 'user'> {
   user: Pick<User, 'id' | 'name' | 'username' | 'telegramId' | 'active'>;
-  entryId: string;
-  status: ListStatus;
-  progress: number;
 }
 
 export interface GlobalAnimeItem {
@@ -167,24 +120,9 @@ export interface GlobalAnimeItem {
   watchers: GlobalAnimeWatcher[];
 }
 
-export interface GlobalListFilter {
-  userId?: string;
-  listStatus?: ListStatus;
-  animeStatus?: string;
-  search?: string;
-}
-
-export interface AddAnimeOptions {
-  userId: string;
-  status?: ListStatus;
-  initialProgress?: number;
-}
-
-export interface ProgressUpdateResult {
-  entry: ListEntryWithAnime;
-  reachedTotalEpisodes: boolean;
-}
-
+/**
+ * Tipos dos serviços schedule e sync completo (ainda em implementação no core).
+ */
 export interface WeekRange {
   offsetWeeks: number;
   timezone: string;
