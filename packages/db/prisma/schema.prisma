@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ListStatus {
+  ASSISTINDO
+  QUERO_VER
+  COMPLETO
+}
+
+model User {
+  id         String      @id @default(cuid())
+  telegramId BigInt?     @unique // null = cadastrado pelo painel e ainda não falou com o bot
+  username   String?     @unique // @ do Telegram, sem o "@", em minúsculas
+  name       String // nome de exibição
+  active     Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  entries    ListEntry[]
+}
+
+model Anime {
+  id            String          @id @default(cuid())
+  anilistId     Int             @unique
+  malId         Int?
+  titleEnglish  String?
+  titleRomaji   String
+  coverUrl      String?
+  siteUrl       String
+  format        String? // TV, ONA, MOVIE...
+  status        String? // RELEASING, FINISHED, NOT_YET_RELEASED...
+  totalEpisodes Int?
+  lastSyncedAt  DateTime?
+  entries       ListEntry[]
+  episodes      AiringEpisode[]
+}
+
+model ListEntry {
+  id        String     @id @default(cuid())
+  userId    String
+  animeId   String
+  status    ListStatus @default(ASSISTINDO)
+  progress  Int        @default(0) // último episódio assistido
+  addedAt   DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime     Anime      @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, animeId])
+}
+
+model AiringEpisode {
+  id         String    @id @default(cuid())
+  animeId    String
+  episode    Int
+  airingAt   DateTime // horário de exibição no Japão (UTC no banco)
+  notifiedAt DateTime? // null = ainda não notificado
+  anime      Anime     @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@unique([animeId, episode])
+  @@index([airingAt])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
