@@ -1,7 +1,9 @@
 import { Bot, GrammyError } from 'grammy';
 import type { BotError } from 'grammy';
+import { registerNotificationWatch } from './callbacks/notification-watch.js';
 import { registerEntryActions } from './callbacks/entry-actions.js';
 import { registerAdd } from './commands/add.js';
+import { registerConfigGroup } from './commands/config-group.js';
 import { registerGlobal } from './commands/global.js';
 import { registerHelp } from './commands/help.js';
 import { registerList } from './commands/list.js';
@@ -63,6 +65,8 @@ export function createBot(token: string): Bot<BotContext> {
   registerRemove(bot);
   registerVi(bot);
   registerGlobal(bot);
+  registerConfigGroup(bot);
+  registerNotificationWatch(bot);
   // Depois do handler de "✏️ Definir ep" (registerEntryActions), que consome o número antes.
   registerMessageLinks(bot);
 
