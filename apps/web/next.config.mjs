@@ -3,6 +3,8 @@ const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
+  transpilePackages: ['@animebot/core', '@animebot/db'],
+  serverExternalPackages: ['@prisma/client', '@prisma/adapter-pg', 'pg'],
   eslint: {
     ignoreDuringBuilds: true,
   },
