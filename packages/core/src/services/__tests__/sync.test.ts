@@ -2,16 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const db = vi.hoisted(() => ({
   prisma: {
-    anime: { upsert: vi.fn() },
+    anime: { upsert: vi.fn(), findMany: vi.fn() },
     airingEpisode: { upsert: vi.fn() },
+    setting: { upsert: vi.fn() },
   },
 }));
 vi.mock('@animebot/db', () => db);
 const anilist = vi.hoisted(() => ({ getAiringSchedules: vi.fn() }));
 vi.mock('../../anilist/index.js', () => anilist);
 
-import { AnimeNotFoundError } from '../../errors.js';
-import { syncSingleAnime } from '../sync.js';
+import { AnimeNotFoundError, SyncAlreadyRunningError } from '../../errors.js';
+import { isSyncInProgress, syncSingleAnime, syncTrackedAnimes } from '../sync.js';
 
 interface UpsertArgs {
   create: { episode: number; notifiedAt: Date | null };
@@ -91,5 +92,62 @@ describe('syncSingleAnime', () => {
     anilist.getAiringSchedules.mockResolvedValue([]);
     await expect(syncSingleAnime(100, NOW)).rejects.toBeInstanceOf(AnimeNotFoundError);
     expect(db.prisma.anime.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe('syncTrackedAnimes', () => {
+  beforeEach(() => {
+    db.prisma.anime.findMany.mockResolvedValue([{ anilistId: 100 }, { anilistId: 200 }]);
+    anilist.getAiringSchedules.mockResolvedValue([
+      media,
+      { ...media, id: 200, airingSchedule: { nodes: [media.airingSchedule.nodes[2]] } },
+    ]);
+    db.prisma.anime.upsert.mockImplementation(({ where }: { where: { anilistId: number } }) =>
+      Promise.resolve({ id: `a${where.anilistId}`, anilistId: where.anilistId }),
+    );
+  });
+
+  it('busca só animes com ListEntry e sincroniza todos de uma vez', async () => {
+    const result = await syncTrackedAnimes(NOW);
+
+    expect(db.prisma.anime.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { entries: { some: {} } } }),
+    );
+    expect(anilist.getAiringSchedules).toHaveBeenCalledWith([100, 200]);
+    expect(result).toMatchObject({ syncedAnimesCount: 2, upsertedEpisodesCount: 4 });
+  });
+
+  it('registra o horário do sync concluído', async () => {
+    await syncTrackedAnimes(NOW);
+    expect(db.prisma.setting.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { key: 'lastSyncAt' } }),
+    );
+  });
+
+  it('sem animes monitorados não chama a AniList', async () => {
+    db.prisma.anime.findMany.mockResolvedValue([]);
+    const result = await syncTrackedAnimes(NOW);
+    expect(anilist.getAiringSchedules).not.toHaveBeenCalled();
+    expect(result.syncedAnimesCount).toBe(0);
+  });
+
+  it('impede execuções concorrentes e libera o lock ao terminar ou falhar', async () => {
+    let release: (value: unknown[]) => void = () => undefined;
+    anilist.getAiringSchedules.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    const first = syncTrackedAnimes(NOW);
+    await vi.waitFor(() => expect(isSyncInProgress()).toBe(true));
+    await expect(syncTrackedAnimes(NOW)).rejects.toBeInstanceOf(SyncAlreadyRunningError);
+
+    release([]);
+    await first;
+    expect(isSyncInProgress()).toBe(false);
+
+    anilist.getAiringSchedules.mockRejectedValueOnce(new Error('boom'));
+    await expect(syncTrackedAnimes(NOW)).rejects.toThrow('boom');
+    expect(isSyncInProgress()).toBe(false);
   });
 });
